@@ -1,0 +1,46 @@
+{
+  "name": "@mdreport/data-sources",
+  "version": "0.1.0",
+  "description": "Host-side CSV and read-only SQLite adapters that materialize md-report datasets.",
+  "type": "module",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@mdreport/renderer-core": "workspace:^"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoneFire/drender.git",
+    "directory": "packages/data-sources"
+  },
+  "homepage": "https://github.com/NoneFire/drender",
+  "bugs": {
+    "url": "https://github.com/NoneFire/drender/issues"
+  },
+  "author": {
+    "name": "NoneFire"
+  },
+  "keywords": [
+    "sqlite",
+    "csv",
+    "dataset",
+    "report",
+    "read-only"
+  ]
+}

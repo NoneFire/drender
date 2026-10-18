@@ -1,0 +1,62 @@
+{
+  "name": "@mdreport/renderer-core",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "dependencies": {
+    "@antv/infographic": "0.2.20",
+    "@antv/t8": "0.3.1",
+    "@excalidraw/utils": "0.1.5",
+    "@mdreport/viewer-theme": "workspace:^",
+    "echarts": "6.1.0",
+    "linkedom": "0.18.13",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "9.2.0",
+    "markdown-it-container": "^4.0.0",
+    "markdown-it-toc-done-right": "4.2.0",
+    "mermaid": "12.2.0",
+    "sql-formatter": "^15.9.0",
+    "tabulator-tables": "6.5.0",
+    "yaml": "^2.8.1"
+  },
+  "description": "Renders md-report/1 Markdown into one self-contained offline HTML report or dashboard: ECharts, Mermaid, AntV, Excalidraw, Tabulator, and named metrics.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoneFire/drender.git",
+    "directory": "packages/renderer-core"
+  },
+  "homepage": "https://github.com/NoneFire/drender",
+  "bugs": {
+    "url": "https://github.com/NoneFire/drender/issues"
+  },
+  "author": {
+    "name": "NoneFire"
+  },
+  "keywords": [
+    "markdown",
+    "report",
+    "dashboard",
+    "echarts",
+    "mermaid",
+    "excalidraw",
+    "antv",
+    "tabulator",
+    "sqlite",
+    "offline",
+    "renderer"
+  ]
+}

@@ -1,0 +1,45 @@
+{
+  "name": "drender",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.21.0",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "build": "tsc -b && tsc -p plugins/hosts/dsh/tsconfig.client.json && node plugins/hosts/dsh/build-client.mjs && node scripts/package-dsh-skill.mjs",
+    "clean": "tsc -b --clean"
+  },
+  "devDependencies": {
+    "@types/markdown-it": "^14.1.2",
+    "@types/markdown-it-container": "^4.0.1",
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.3"
+  },
+  "description": "An open-source renderer for the md-report/1 format: Markdown plus declared datasets becomes one offline, interactive HTML report or dashboard.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoneFire/drender.git"
+  },
+  "homepage": "https://github.com/NoneFire/drender",
+  "bugs": {
+    "url": "https://github.com/NoneFire/drender/issues"
+  },
+  "author": {
+    "name": "NoneFire"
+  },
+  "keywords": [
+    "markdown",
+    "report",
+    "dashboard",
+    "dataviz",
+    "echarts",
+    "mermaid",
+    "excalidraw",
+    "sqlite",
+    "offline",
+    "deepseek-harness"
+  ]
+}

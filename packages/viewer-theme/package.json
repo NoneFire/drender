@@ -1,0 +1,41 @@
+{
+  "name": "@mdreport/viewer-theme",
+  "version": "0.1.0",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "tsc -b"
+  },
+  "description": "Accessible report styles and a full-screen dark dashboard theme for md-report/1 documents.",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/NoneFire/drender.git",
+    "directory": "packages/viewer-theme"
+  },
+  "homepage": "https://github.com/NoneFire/drender",
+  "bugs": {
+    "url": "https://github.com/NoneFire/drender/issues"
+  },
+  "author": {
+    "name": "NoneFire"
+  },
+  "keywords": [
+    "markdown",
+    "report",
+    "dashboard",
+    "theme",
+    "css",
+    "print"
+  ]
+}

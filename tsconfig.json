@@ -1,0 +1,9 @@
+{
+  "files": [],
+  "references": [
+    { "path": "./packages/viewer-theme" },
+    { "path": "./packages/renderer-core" },
+    { "path": "./packages/data-sources" },
+    { "path": "./plugins/hosts/dsh" }
+  ]
+}

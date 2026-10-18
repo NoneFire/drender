@@ -1,0 +1,30 @@
+node_modules/
+**/dist/
+**/lib/
+**/*.tsbuildinfo
+.DS_Store
+examples/.cache/
+
+# Generated example artifacts: `node examples/render-examples.mjs` recreates these.
+examples/*.html
+examples/data/
+
+# Review scratch data stays local; the authored scripts and write-ups are tracked.
+reports/**/data/
+reports/**/raw/
+reports/**/preview/
+reports/**/*.sqlite
+reports/**/*.sqlite-wal
+reports/**/*.sqlite-shm
+
+# The public site is its own deployment project with a separate git history.
+sites/drender-official/
+
+# Packaging scratch
+*.tgz
+
+# pnpm may place a content-addressable store inside the project
+.pnpm-store/
+
+# Design-review skill scratch state: local annotations, sessions, and critique notes.
+.impeccable/

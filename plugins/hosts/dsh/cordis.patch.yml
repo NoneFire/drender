@@ -1,0 +1,3 @@
+- insert:
+    - id: md-report-dsh
+      name: '@drender/dsh-drender-plugin'
