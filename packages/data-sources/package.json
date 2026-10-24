@@ -1,6 +1,6 @@
 {
-  "name": "@mdreport/data-sources",
-  "version": "0.1.0",
+  "name": "@nonefire/data-sources",
+  "version": "0.1.1",
   "description": "Host-side CSV and read-only SQLite adapters that materialize md-report datasets.",
   "type": "module",
   "engines": {
@@ -21,7 +21,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@mdreport/renderer-core": "workspace:^"
+    "@nonefire/renderer-core": "workspace:^"
   },
   "license": "MIT",
   "repository": {

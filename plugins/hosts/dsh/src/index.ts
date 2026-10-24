@@ -26,14 +26,14 @@ import {
   type SqliteSourceConfig,
   extractAssetSourceConfig,
   extractSqliteSourceConfig,
-} from '@mdreport/renderer-core';
-import { loadMarkdownSqliteSources } from '@mdreport/data-sources';
+} from '@nonefire/renderer-core';
+import { loadMarkdownSqliteSources } from '@nonefire/data-sources';
 
-export { loadMarkdownSqliteSources, loadSqliteDataset, parseCsvDataset, readCsvDataset } from '@mdreport/data-sources';
+export { loadMarkdownSqliteSources, loadSqliteDataset, parseCsvDataset, readCsvDataset } from '@nonefire/data-sources';
 
-const mdReportSkill = readFileSync(new URL('./skills/md-report/SKILL.md', import.meta.url), 'utf8');
+const drenderReportSkill = readFileSync(new URL('./skills/drender-report/SKILL.md', import.meta.url), 'utf8');
 
-export const name = '@drender/dsh-drender-plugin';
+export const name = '@nonefire/dsh-drender-plugin';
 export const inject = ['tools', 'skills', 'attachments'] as const;
 
 interface ToolInput {
@@ -445,7 +445,7 @@ function sourcePortabilityDiagnostics(input: ToolInput): Diagnostic[] {
 
 function createValidateTool(ctx: Context) {
   return defineTool({
-  name: 'md_report_validate',
+  name: 'drender_validate',
   description: 'Validate md-report/1 from exactly one complete Markdown payload or workspace-relative Markdown path. Includes component schemas, dashboard layout, declared datasets and assets; reports dataset sizes and component summaries.',
   parameters: inputProperties,
   output: {
@@ -563,7 +563,7 @@ function hostWarning(code: string, message: string): Diagnostic {
 
 function createRenderTool(ctx: Context, attachments?: AttachmentStore) {
   return defineTool({
-  name: 'md_report_render',
+  name: 'drender_render',
   description: 'Read md-report/1 from exactly one Markdown payload or workspace-relative path, validate it, render self-contained offline HTML, and return absolute source/output paths plus dataset and component summaries. Path input saves the content-addressed HTML beside the Markdown file. Use optional fontSize (12–20 px, default 14).',
   parameters: renderInputProperties,
   output: {
@@ -777,10 +777,10 @@ export function apply(ctx: Context): void {
   const validateTool = createValidateTool(ctx);
   const renderTool = createRenderTool(ctx, attachmentStore);
   ctx.skills.register({
-    name: 'md-report',
+    name: 'drender-report',
     description: 'Create, validate, and render portable md-report/1 Markdown reports and full-screen dashboard views with offline interactive ECharts charts.',
     source: 'runtime',
-    content: mdReportSkill,
+    content: drenderReportSkill,
   });
   ctx.tools.register(validateTool);
   ctx.tools.register(renderTool);

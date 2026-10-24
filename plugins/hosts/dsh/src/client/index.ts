@@ -11,7 +11,7 @@ export function apply(ctx: Context): void {
   ctx.effect(() => ctx.slots.inject(
     'tool.call.toolview',
     () => ctx.slots.register(
-      { name: 'tool.call.toolview', key: 'md_report_render' },
+      { name: 'tool.call.toolview', key: 'drender_render' },
       props => createElement(RenderToolRow, props),
     ),
   ), 'md-report: render result card');

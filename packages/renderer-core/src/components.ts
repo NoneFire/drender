@@ -324,9 +324,10 @@ function dataReference(spec: JsonObject, datasets: ComponentDatasets): { name: s
   return { name, rows: datasetRecords(dataset) };
 }
 
-function titleBar(title: unknown, kind: string, kicker?: unknown): string {
+function titleBar(title: unknown, kind: string, kicker?: unknown, meta?: unknown): string {
   const label = typeof kicker === 'string' && kicker.trim() ? kicker.trim() : kind;
-  return `<div class="mdr-component-heading"><div><span class="mdr-component-kicker">${escape(label)}</span><h3>${escape(title || kind)}</h3></div></div>`;
+  const trailing = typeof meta === 'string' && meta.trim() ? `<span class="mdr-component-meta">${escape(meta.trim())}</span>` : '';
+  return `<div class="mdr-component-heading"><div><span class="mdr-component-kicker">${escape(label)}</span><h3>${escape(title || kind)}</h3></div>${trailing}</div>`;
 }
 
 /** Read `title="..."` / `kicker="..."` / `engine` from a fence info string. */
@@ -553,7 +554,7 @@ function buildSpecialChart(kind: string, context: ChartContext): { option: JsonO
         grid: { left: 54, right: doubleAxis ? 56 : 30, top: 36, bottom: 28, containLabel: true },
         xAxis: { type: 'category', data: categories, boundaryGap: series.some((entry) => entry.type === 'bar') },
         yAxis: [
-          { type: 'value', name: unit, splitLine: { show: true }, mdrFormat: context.valueFormat },
+          { type: 'value', splitLine: { show: true }, mdrFormat: context.valueFormat },
           ...(doubleAxis ? [{ type: 'value', name: '', splitLine: { show: false }, mdrFormat: axisFormat(declared.find((entry) => Number(entry.axis) === 1)) }] : []),
         ],
         series,
@@ -592,7 +593,7 @@ function buildSpecialChart(kind: string, context: ChartContext): { option: JsonO
         legend: { top: 2, left: 8 },
         grid: { left: 54, right: 30, top: 36, bottom: 28, containLabel: true },
         xAxis: { type: 'category', data: items.map((item) => item.label), axisLabel: { hideOverlap: true, showMaxLabel: true } },
-        yAxis: { type: 'value', name: unit, mdrFormat: context.valueFormat },
+        yAxis: { type: 'value', mdrFormat: context.valueFormat },
         series: [
           { name: 'base', type: 'bar', stack: 'wf', silent: true, itemStyle: { color: 'transparent' }, data: bases, emphasis: { disabled: true } },
           bar('增加', rises, '#4d906d'),
@@ -695,7 +696,7 @@ function buildSpecialChart(kind: string, context: ChartContext): { option: JsonO
         tooltip: { trigger: 'item' },
         grid: { left: 54, right: 30, top: 24, bottom: 34, containLabel: true },
         xAxis: { type: 'category', data: categories },
-        yAxis: { type: 'value', scale: true, name: unit, mdrFormat: context.valueFormat },
+        yAxis: { type: 'value', scale: true, mdrFormat: context.valueFormat },
         series: [{ name: title, type: 'boxplot', data: boxes, itemStyle: { borderColor: '#4d906d', color: 'rgba(77,144,109,.18)' } }],
         toolbox: { right: 4, top: 0, feature: { restore: {}, saveAsImage: { pixelRatio: 2 } } },
       },
@@ -851,12 +852,10 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
   const valueFormat = chartValueFormat(spec, metric);
   let accessibleHead: string[] = [];
   let accessibleRows: string[][] = [];
-  let unitNote = unit;
-
   if (SPECIAL_CHART_KINDS.includes(kind as never)) {
     const built = buildSpecialChart(kind, { spec, rows, datasets, metrics, title, unit, valueFormat });
     if (!built) {
-      return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker)}<div class="mdr-empty">没有可绘制的数据</div></section>`;
+      return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unit ? `单位：${unit}` : undefined)}<div class="mdr-empty">没有可绘制的数据</div></section>`;
     }
     if (['combo', 'waterfall'].includes(kind)) applyAnnotations(built.option, spec, []);
     const serializedSpecial = escape(JSON.stringify(built.option));
@@ -864,11 +863,11 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
     const accessible = built.rows.length > 0 && built.rows.length <= 400
       ? `<div class="mdr-visually-hidden" id="${escape(dataId)}"><table><caption>${escape(title)} 数据</caption><thead><tr>${built.head.map((cell) => `<th>${escape(cell)}</th>`).join('')}</tr></thead><tbody>${built.rows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
       : '';
-    const noteText = built.unitNote ?? unitNote;
-    const note = noteText ? `<p class="mdr-chart-note">单位：${escape(noteText)}</p>` : '';
+    const noteText = built.unitNote ?? unit;
+    const unitMeta = noteText ? `单位：${noteText}` : undefined;
     const describedBy = accessible ? ` aria-describedby="${escape(dataId)}"` : '';
     const anchorId = typeof spec.anchor === 'string' && /^[A-Za-z][A-Za-z0-9._-]{0,127}$/.test(spec.anchor) ? spec.anchor : chartId;
-    return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker)}<div id="${escape(anchorId)}" class="mdr-echart" data-option="${serializedSpecial}" role="img" aria-label="${escape(title)}"${describedBy}></div>${note}${accessible}</section>`;
+    return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unitMeta)}<div id="${escape(anchorId)}" class="mdr-echart" data-option="${serializedSpecial}" role="img" aria-label="${escape(title)}"${describedBy}></div>${accessible}</section>`;
   }
   let option: JsonObject;
   if (kind === 'pie') {
@@ -876,7 +875,7 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
       const value = number(row[yField]);
       return value === undefined ? [] : [{ name: String(row[xField] ?? ''), value }];
     });
-    if (!data.length) return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图')}<div class="mdr-empty">没有可绘制的数据</div></section>`;
+    if (!data.length) return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unit ? `单位：${unit}` : undefined)}<div class="mdr-empty">没有可绘制的数据</div></section>`;
     accessibleHead = ['分类', '数值'];
     accessibleRows = data.map((slice) => [slice.name, String(slice.value)]);
     option = {
@@ -885,7 +884,7 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
       legend: { type: data.length > 5 ? 'scroll' : 'plain', bottom: 2, left: 'center' },
       series: [{
         name: String(title), type: 'pie', radius: ['38%', '62%'], center: ['50%', '46%'],
-        avoidLabelOverlap: true, itemStyle: { borderRadius: 6, borderColor: SURFACE_SENTINEL, borderWidth: 2 },
+        avoidLabelOverlap: true, itemStyle: { borderRadius: 6, borderColor: SURFACE_SENTINEL, borderWidth: 1 },
         label: {
           formatter: '{b}  {d}%',
           width: 104, overflow: 'truncate', alignTo: 'edge', edgeDistance: 4,
@@ -949,7 +948,7 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
             boundaryGap: banded ? true : ['2%', '2%'],
             axisLabel: { hideOverlap: true, showMaxLabel: true },
           },
-      yAxis: { type: 'value', name: unit, nameGap: 12, scale: kind === 'scatter', splitLine: { show: true }, mdrFormat: valueFormat },
+      yAxis: { type: 'value', scale: kind === 'scatter', splitLine: { show: true }, mdrFormat: valueFormat },
       series,
       toolbox: {
         right: 4, top: 0,
@@ -963,7 +962,6 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
     applyAnnotations(option, spec, seriesNames);
   }
   const serialized = escape(JSON.stringify(option));
-  const note = unitNote ? `<p class="mdr-chart-note">单位：${escape(unitNote)}</p>` : '';
   // A canvas chart is opaque to assistive tech; a visually hidden data table keeps the numbers reachable.
   const dataId = `${chartId}-data`;
   const accessible = accessibleRows.length > 0 && accessibleRows.length <= 400
@@ -971,7 +969,7 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
     : '';
   const describedBy = accessible ? ` aria-describedby="${escape(dataId)}"` : '';
   const anchorId = typeof spec.anchor === 'string' && /^[A-Za-z][A-Za-z0-9._-]{0,127}$/.test(spec.anchor) ? spec.anchor : chartId;
-  return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker)}<div id="${escape(anchorId)}" class="mdr-echart" data-option="${serialized}" role="img" aria-label="${escape(title)}"${describedBy}></div>${note}${accessible}</section>`;
+  return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unit ? `单位：${unit}` : undefined)}<div id="${escape(anchorId)}" class="mdr-echart" data-option="${serialized}" role="img" aria-label="${escape(title)}"${describedBy}></div>${accessible}</section>`;
 }
 
 function renderTable(source: string, datasets: ComponentDatasets, metrics: MetricRegistry = {}): string | undefined {
@@ -1356,9 +1354,30 @@ function registerLayoutBlocks(md: MarkdownIt): void {
     state.line = closeLine + 1;
     return true;
   }, { alt: ['paragraph', 'reference', 'blockquote', 'list'] });
+  const consecutiveColumnCount = (tokens: Token[], startIndex: number): number => {
+    let count = 0;
+    let index = startIndex;
+    while (tokens[index]?.type === 'mdr_column_open') {
+      count += 1;
+      let depth = 0;
+      for (; index < tokens.length; index += 1) {
+        if (tokens[index]?.type === 'mdr_column_open') depth += 1;
+        else if (tokens[index]?.type === 'mdr_column_close') {
+          depth -= 1;
+          if (depth === 0) {
+            index += 1;
+            break;
+          }
+        }
+      }
+    }
+    return count;
+  };
   md.renderer.rules.mdr_column_open = (tokens, index) => {
     const previous = tokens[index - 1];
-    return `${previous?.type === 'mdr_column_close' ? '' : '<div class="mdr-columns">'}<section class="mdr-column">\n`;
+    if (previous?.type === 'mdr_column_close') return '<section class="mdr-column">\n';
+    const count = Math.min(consecutiveColumnCount(tokens, index), 6);
+    return `<div class="mdr-columns mdr-columns--${count}"><section class="mdr-column">\n`;
   };
   md.renderer.rules.mdr_column_close = (tokens, index) => tokens[index + 1]?.type === 'mdr_column_open' ? '</section>\n' : '</section></div>\n';
   md.renderer.rules.mdr_details_open = (tokens, index) => {

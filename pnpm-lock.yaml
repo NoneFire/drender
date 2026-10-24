@@ -23,7 +23,7 @@ importers:
 
   packages/data-sources:
     dependencies:
-      '@mdreport/renderer-core':
+      '@nonefire/renderer-core':
         specifier: workspace:^
         version: link:../renderer-core
 
@@ -35,12 +35,12 @@ importers:
       '@antv/t8':
         specifier: 0.3.1
         version: 0.3.1
+      '@nonefire/viewer-theme':
+        specifier: workspace:^
+        version: link:../viewer-theme
       '@excalidraw/utils':
         specifier: 0.1.5
         version: 0.1.5
-      '@mdreport/viewer-theme':
-        specifier: workspace:^
-        version: link:../viewer-theme
       echarts:
         specifier: 6.1.0
         version: 6.1.0
@@ -76,10 +76,10 @@ importers:
 
   plugins/hosts/dsh:
     dependencies:
-      '@mdreport/data-sources':
+      '@nonefire/data-sources':
         specifier: workspace:^
         version: link:../../../packages/data-sources
-      '@mdreport/renderer-core':
+      '@nonefire/renderer-core':
         specifier: workspace:^
         version: link:../../../packages/renderer-core
     devDependencies:

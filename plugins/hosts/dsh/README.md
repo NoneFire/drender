@@ -1,39 +1,39 @@
-# @drender/dsh-drender-plugin
+# @nonefire/dsh-drender-plugin
 
-DeepSeek Harness adapter for the independent `md-report/1` renderer. It registers two tools (`md_report_validate` and `md_report_render`) and a runtime Skill named `md-report`.
+为 DeepSeek Harness 提供 drender 适配器，注册 `drender_validate`、`drender_render` 两个工具，并注册运行时 Skill `drender-report`。
 
-The reusable, host-neutral Agent Skill source is [`../../../.agents/skills/md-report/SKILL.md`](../../../.agents/skills/md-report/SKILL.md). The workspace build copies it into `lib/skills/md-report/SKILL.md` for DSH runtime registration; do not maintain a second DSH-specific Skill source.
+通用 Skill 源文件为 [`../../../.agents/skills/drender-report/SKILL.md`](../../../.agents/skills/drender-report/SKILL.md)。构建时会复制到 `lib/skills/drender-report/SKILL.md`，请只维护共享源文件。
 
-## Requirements
+## 环境要求
 
-- Node.js 22.13 or newer (for the bundled SQLite dataset adapter without an experimental CLI flag).
-- DeepSeek Harness with the public `@deepseek-ai/dsh-tools` and `@deepseek-ai/dsh-skill` services mounted, plus the model-facing `@deepseek-ai/dsh-tool-skill` consumer enabled so the agent can load the bundled Skill.
-- A DSH workspace filesystem service for Markdown-declared SQLite files. Without it, reports that declare SQLite sources fail closed; reports using inline snapshots can still render.
-- For the clickable sidebar preview, the DSH filesystem service and a Session workspace (`session.header.cwd`) must be available; the Web profile also needs DSH's `ui-tool`, `ui-slots`, `ui-renderer`, and `ui-primitives` modules. The attachment provider is optional. Both storage paths degrade independently; if neither can save the HTML, render returns a bounded Markdown fallback.
+- Node.js 22.13 或更高版本。
+- DSH 已挂载公开的 `@deepseek-ai/dsh-tools`、`@deepseek-ai/dsh-skill` 服务，并启用了供模型加载 Skill 的消费者。
+- 读取 Markdown frontmatter 中声明的 SQLite 与 SQL 文件需要 DSH Session 工作区文件系统服务。
+- 侧栏 HTML 预览需要 Session 工作区；Web profile 还需要 DSH 的 `ui-tool`、`ui-slots`、`ui-renderer` 和 `ui-primitives` 模块。附件服务是可选的。
 
-The plugin uses DSH's published Cordis, tools, skill, attachment, and client UI contracts. It does not import DSH application files or private packages.
+插件仅依赖 DSH 公布的 Cordis、tools、skill、attachment 和客户端 UI API，不导入 DSH 应用源码或私有包。
 
-## Install
+## 安装
 
-Build and publish this workspace package together with `@mdreport/renderer-core` and `@mdreport/viewer-theme`, then install the DSH package in the selected profile:
+发布后，将插件安装到所选 profile：
 
 ```sh
-dsh plugin --profile web add @drender/dsh-drender-plugin
+dsh plugin --profile web add @nonefire/dsh-drender-plugin
 ```
 
-For source development, add the plugin row from `cordis.patch.yml` to the profile's patch configuration. Keep its stable `id` as `md-report-dsh`; its `name` must match the installed package name and `src/index.ts` export.
+插件依赖 `@nonefire/renderer-core`、`@nonefire/data-sources` 和 `@nonefire/viewer-theme`。在源码开发环境中，将 `cordis.patch.yml` 的插件条目加入 profile 配置；稳定 ID 为 `md-report-dsh`，名称必须与包名及 `src/index.ts` 导出一致。
 
-## Tools
+## 工具
 
-- `md_report_validate`: validates required frontmatter, dashboard/panel structure, component specs, dataset references, safe links, and image asset references. Diagnostics include a line number and a report path.
-- `md_report_render`: renders a self-contained interactive HTML file with the bundled viewer theme, table-of-contents plugins, and the ECharts, Tabulator, AntV T8, Mermaid, and AntV Infographic runtimes when needed; Excalidraw scenes use the official SVG exporter during report generation. It saves a Session workspace copy for DSH's right-sidebar HTML preview, saves the Markdown source in the workspace, and saves a downloadable HTML attachment when available. Its result card has an **Open right-sidebar preview** action and shows the saved source path. If either HTML storage path is unavailable, the other is still used; only when both are unavailable does it return a bounded Markdown fallback.
+- `drender_validate`：校验必需 frontmatter、dashboard/panel 结构、组件配置、数据集引用、安全链接和图片资源。诊断包含行号与报告路径。
+- `drender_render`：生成包含主题和所需图表运行时的自包含 HTML，保存 Markdown 源文件；宿主支持时还会生成右侧栏预览和下载附件。若 HTML 存储不可用，工具会返回有长度上限的 Markdown 预览。
 
-The sidebar uses DSH's built-in HTML document preview. Its interactive sandbox follows the host's Coding Tools / interactive-preview setting; when that setting is disabled, DSH presents a safe static preview and report JavaScript such as interactive charts and T8 narratives does not run. The sidebar file and downloadable attachment contain the same rendered HTML.
+数据组件从声明的只读 SQLite 查询或显式传入的快照读取。Frontmatter 可声明一个 SQLite 文件，并通过 SQL sidecar、命名 view 或短内联查询声明数据集和 Excalidraw 场景。数据库与 SQL 路径必须位于 Session 工作区内。查询只允许只读语句，每个数据集最多 5,000 行，SQL 文件最多 100 KB，图片输入总量最多 8 MB，数据快照总量上限为 1 MB。
 
-Both tools accept the host-neutral report envelope as `markdown`, plus optional inline `assets` and `datasets` maps for one-off reports. Markdown may declare one workspace-relative SQLite file in frontmatter and name each dataset or Excalidraw scene using source tables plus either a `.sql` sidecar, a named SQLite view, or a short inline query. Query files and database files are resolved through DSH's filesystem service; paths outside the session workspace are rejected. The adapter opens SQLite read-only, materializes all declared sources in one snapshot, and reads only declared image files before validation/rendering. Query output is capped at 5,000 rows per dataset, query files at 100 KB, image inputs at 8 MB total, and the renderer applies its 1 MB snapshot limit. After a successful render, the adapter saves the input Markdown under a call-scoped name in the session workspace and returns that path. Preserve its declared database, `.sql` files, and images with the Markdown when archiving or moving a report. Inline data supplied in tool arguments is not saved into Markdown and produces a portability warning; use declared source files for reusable reports. Exported HTML embeds the resulting data and images and does not require those source files at view time. CSV helpers remain available for one-off imports and static snapshots.
+`drender_render` 会把渲染后的 HTML 与对应快照嵌入导出文件，因此离线可用。内联 `datasets` 或 `assets` 参数不会写回 Markdown，会产生可移植性提示；可重复使用的报告应保留 Markdown、SQLite 文件、SQL sidecar 和图片资源。
 
-## Component coverage
+## 组件覆盖
 
-Standard Markdown with generated TOCs, callouts, 12-column full-screen dashboard panels, literal or SQLite-backed KPI cards, interactive ECharts charts, sortable virtualized Tabulator data tables with horizontal and vertical scrolling, SQL formatted by `sql-formatter`, official Mermaid diagrams, AntV Infographic templates, official Excalidraw SVG exports, AntV T8 narratives, split columns, foldable details, and declared raster assets are supported. Chart, table, and Excalidraw data comes from a declared SQLite query or an explicit inline snapshot. A KPI can bind its value, change, and period to fields in a single-row SQLite summary query, so those indicators update whenever the report is rendered. ECharts, Tabulator, T8, Mermaid, and AntV Infographic runtimes are embedded in exports when referenced; Excalidraw scenes are converted to official static SVG during rendering. All visual components work offline.
+支持普通 Markdown、自动目录、提示条、12 列 dashboard 面板、正文分栏和折叠详情；KPI、ECharts、Tabulator 数据表、SQL、Mermaid、AntV Infographic、Excalidraw SVG、AntV T8 和声明式图片资源。图表、数据表和 Excalidraw 数据可通过 frontmatter 声明的 SQLite 数据源提供。
 
-HTML includes all CSS, required open-source visualization runtimes, and referenced asset bytes, uses a restrictive hash-based Content Security Policy, and runs only bundled library runtimes and renderer initializers. It is an offline snapshot and does not protect embedded report data from inspection.
+导出 HTML 内嵌样式、必要的开源可视化运行时和所引用资源，使用基于哈希的内容安全策略。导出文件是数据快照；请勿在其中放入秘密或凭据。

@@ -1,6 +1,6 @@
 {
-  "name": "@drender/dsh-drender-plugin",
-  "version": "0.1.0",
+  "name": "@nonefire/dsh-drender-plugin",
+  "version": "0.1.1",
   "description": "DeepSeek Harness tools and Skill for validating and rendering md-report documents.",
   "type": "module",
   "engines": {
@@ -48,8 +48,8 @@
     "react": "^18.2.0"
   },
   "dependencies": {
-    "@mdreport/data-sources": "workspace:^",
-    "@mdreport/renderer-core": "workspace:^"
+    "@nonefire/data-sources": "workspace:^",
+    "@nonefire/renderer-core": "workspace:^"
   },
   "dsh": {
     "bundle": {

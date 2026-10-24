@@ -1,9 +1,9 @@
 ---
-name: md-report
+name: drender-report
 description: Plan and create md-report/1 dashboards and analytical reports from supplied data, choosing suitable questions, visualizations, and layouts before rendering.
 ---
 
-# md-report/1
+# drender-report
 
 Use this skill when creating or editing an analytical report or dashboard in the portable `md-report/1` format. Keep the source Markdown, its declared SQLite database, and any referenced `.sql` files together so the output remains reproducible and editable.
 
@@ -446,7 +446,7 @@ For an external host that does not implement Markdown SQLite loading, resolve th
 - Treat frontmatter database/query-file paths and SQL as untrusted document input: enforce workspace containment, read-only access, query limits, and bound parameters in the host. Keep credentials and privileged local paths in trusted host configuration. SQL code fences are display-only.
 - The current renderer accepts at most 1 MB of declared datasets and displays up to 5,000 table rows. Aggregate or filter larger inputs before rendering and describe omitted scope.
 
-`md_report_validate` returns per-dataset materialized row and UTF-8 byte counts. It warns when a dataset reaches 4,000 rows or the aggregate dataset snapshot reaches 800,000 bytes; the hard limits are 5,000 SQLite rows per query and 1,000,000 bytes for datasets. Validation reports up to 500 diagnostics. It collects independent issues and may skip dependent checks after a malformed component (for example, a chart with invalid JSON cannot also be checked for field references).
+`drender_validate` returns per-dataset materialized row and UTF-8 byte counts. It warns when a dataset reaches 4,000 rows or the aggregate dataset snapshot reaches 800,000 bytes; the hard limits are 5,000 SQLite rows per query and 1,000,000 bytes for datasets. Validation reports up to 500 diagnostics. It collects independent issues and may skip dependent checks after a malformed component (for example, a chart with invalid JSON cannot also be checked for field references).
 
 The renderer rejects raw HTML, restricts links to `https:`, `http:`, `mailto:`, and in-document anchors, and embeds only declared raster images. It does not execute user JavaScript or SQL. Exported HTML includes its CSS and only the required chart, table, Mermaid, T8, and Infographic runtimes; Excalidraw scenes are exported to SVG before delivery. For planning distribution size, ECharts contributes about 1.1 MB when a chart is present, and Tabulator adds about 0.5 MB when a data table is present. A report containing both typically starts around 1.6–1.7 MB before its data and other content. Runtimes stay embedded so the document works offline; hiding chart controls does not materially change this runtime-size floor. Anyone receiving the HTML can inspect embedded data. Do not put secrets in a report.
 
@@ -455,4 +455,4 @@ The renderer rejects raw HTML, restricts links to `https:`, `http:`, `mailto:`, 
 1. Prepare a `ReportDocument` containing `markdown` and, when needed, declared `datasets` and inline `assets`; DSH can load SQLite and image file sources directly from the Markdown frontmatter. For an existing workspace Markdown file, pass `path` to DSH instead of resending the document text.
 2. Use the host's md-report validation tool when available. Fix every error diagnostic before rendering. Unknown component keys, unresolved metric tokens, and missing required fields are errors, not warnings.
 3. Use the host's render tool when available. Otherwise use `validateReport(document)` and `renderReport(document, options)` from `@mdreport/renderer-core`.
-4. In DSH, `md_report_render` returns dataset row/byte counts and a component summary, plus the absolute HTML and source paths. With `path` input it writes content-addressed HTML beside the source Markdown. With inline Markdown it saves a call-scoped source copy in the session workspace. Preserve the Markdown with the SQLite database, referenced `.sql` files, and image files at the declared workspace-relative paths; together they are the reproducible source. The exported HTML is only a viewable snapshot. If another host cannot save the source files, return or save the Markdown and explain which declared sidecar files must accompany it.
+4. In DSH, `drender_render` returns dataset row/byte counts and a component summary, plus the absolute HTML and source paths. With `path` input it writes content-addressed HTML beside the source Markdown. With inline Markdown it saves a call-scoped source copy in the session workspace. Preserve the Markdown with the SQLite database, referenced `.sql` files, and image files at the declared workspace-relative paths; together they are the reproducible source. The exported HTML is only a viewable snapshot. If another host cannot save the source files, return or save the Markdown and explain which declared sidecar files must accompany it.

@@ -504,10 +504,26 @@ flowchart LR
 infographic list-row-simple-horizontal-arrow
 data
   lists
-    - label: 指标 token 在信息图内解析
-      desc: 例如 {{revenue_total}}
-    - label: 数值格式由指标声明决定
-      desc: 例如 {{share_east}}
+    - label: 营收表现
+      desc: {{revenue_total}}
+    - label: 华东占比
+      desc: {{share_east}}
+    - label: 占比变动
+      desc: {{share_shift}}
+```
+
+多列内容用 `list-grid-simple` 模板，默认三列；标签与说明会保持模板字号，不随报告宽度放大。
+
+```infographic title="多列指标" kicker="三列清单"
+infographic list-grid-simple
+data
+  lists
+    - label: 10 月营收
+      desc: {{revenue_total}}
+    - label: 华东占比
+      desc: {{share_east}}
+    - label: 占比变动
+      desc: {{share_shift}}
 ```
 
 ## 叙述式文本
@@ -552,7 +568,7 @@ data
 
 ### 并排分栏 column
 
-回答的问题：两个小块并排，又不需要完整栅格。连续的分栏块会自动并排。
+回答的问题：小块内容并排，又不需要完整栅格。连续的分栏块会自动排成两列到六列。
 
 [column
 `[column` 开始一栏，到单独一行 `]` 结束；相邻两栏会并排显示。
@@ -560,6 +576,24 @@ data
 
 [column
 栏内可以放标题、段落、列表与组件，适合对照两段说明。
+]
+
+[column
+第三栏会加入同一行，窄屏时分栏自动堆叠。
+]
+
+图表也可以并排放在分栏中；容器会按列宽调整，窄屏时自动上下排列。
+
+[column
+```chart
+{"kind":"line","title":"月营收走势","dataRef":"monthly_total","x":"month","y":"revenue","unit":"元"}
+```
+]
+
+[column
+```chart
+{"kind":"bar","title":"渠道订单","dataRef":"channel_mix","x":"channel","y":"orders","unit":"单"}
+```
 ]
 
 ### 折叠详情 details

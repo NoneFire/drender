@@ -1,6 +1,6 @@
 {
-  "name": "@mdreport/renderer-core",
-  "version": "0.1.0",
+  "name": "@nonefire/renderer-core",
+  "version": "0.1.1",
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -20,7 +20,7 @@
     "@antv/infographic": "0.2.20",
     "@antv/t8": "0.3.1",
     "@excalidraw/utils": "0.1.5",
-    "@mdreport/viewer-theme": "workspace:^",
+    "@nonefire/viewer-theme": "workspace:^",
     "echarts": "6.1.0",
     "linkedom": "0.18.13",
     "markdown-it": "^14.1.0",

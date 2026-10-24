@@ -8,7 +8,7 @@ import container from 'markdown-it-container';
 import markdownItTocDoneRight from 'markdown-it-toc-done-right';
 import { DOMParser, parseHTML } from 'linkedom';
 import { isAlias, parseDocument } from 'yaml';
-import { viewerThemeCss } from '@mdreport/viewer-theme';
+import { viewerThemeCss } from '@nonefire/viewer-theme';
 import {
   CHART_KINDS,
   COMPARISON_KINDS,
@@ -223,6 +223,16 @@ const infographicBootstrap = String.raw`(() => {
     try {
       const infographic = new library.Infographic({ container: element, width: '100%', height: '100%', editable: false });
       infographic.render(source);
+      // AntV's templates use a small SVG viewBox (often only a few hundred
+      // pixels wide). Keeping width="100%" scales that design up to the whole
+      // report column, which makes its fixed-size labels collide. Restore the
+      // SVG's natural dimensions; CSS can still shrink it for narrow screens.
+      const svg = element.querySelector('svg');
+      const viewBox = svg?.viewBox.baseVal;
+      if (svg && viewBox && viewBox.width > 0 && viewBox.height > 0) {
+        svg.setAttribute('width', String(viewBox.width));
+        svg.setAttribute('height', String(viewBox.height));
+      }
     } catch (error) {
       const fallback = document.createElement('pre');
       fallback.className = 'mdr-component-error';
@@ -360,8 +370,9 @@ const chartBootstrap = String.raw`(() => {
             delete axis.mdrFormat;
             if (axis.type === 'value' || axis.type === 'log') axis.axisLabel.formatter = (value) => formatNumber(value, axisSpec);
           }
-          axis.axisLine = { ...(axis.axisLine || {}), lineStyle: { ...(axis.axisLine?.lineStyle || {}), color: line } };
-          axis.splitLine = { ...(axis.splitLine || {}), lineStyle: { ...(axis.splitLine?.lineStyle || {}), color: line, opacity: dashboard ? 0.65 : 1 } };
+          axis.axisLine = { ...(axis.axisLine || {}), show: false, lineStyle: { ...(axis.axisLine?.lineStyle || {}), color: line } };
+          axis.axisTick = { ...(axis.axisTick || {}), show: false };
+          axis.splitLine = { ...(axis.splitLine || {}), lineStyle: { ...(axis.splitLine?.lineStyle || {}), color: line, width: 1, opacity: dashboard ? 0.32 : 0.52 } };
         }
       }
       if (option.tooltip) {
@@ -2390,8 +2401,7 @@ function buildHtml(
     <div class="mdr-report-layout${tocHtml ? '' : ' mdr-report-layout--without-toc'}">
 ${tocHtml ? `      ${tocHtml}\n` : ''}      <article class="mdr-content">${renderedBody}</article>
     </div>
-    ${footer}
-  </main>
+${footer ? `    ${footer}\n` : ''}  </main>
   ${runtimeScripts}
 </body>`;
   return `<!doctype html>

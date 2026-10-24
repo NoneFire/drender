@@ -179,9 +179,11 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--mdr-accent); o
 .mdr-content .mdr-component { min-width: 0; margin: 0; padding: 18px; border: 1px solid var(--mdr-line); border-radius: 11px; background: var(--mdr-surface); }
 .mdr-content .mdr-component-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
 .mdr-content .mdr-chart { padding: 14px; }
+body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0; border: 0; border-radius: 0; background: transparent; box-shadow: none; }
 .mdr-content .mdr-chart .mdr-component-heading { margin-bottom: 8px; }
 .mdr-content .mdr-component-heading h3 { margin: 2px 0 0; font-size: 1rem; line-height: 1.35; }
 .mdr-content .mdr-component-kicker { color: var(--mdr-ink-faint); font-size: var(--mdr-text-micro); font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+.mdr-content .mdr-component-meta { flex: 0 0 auto; align-self: center; color: var(--mdr-ink-faint); font-size: var(--mdr-text-aux); white-space: nowrap; }
 .mdr-content .mdr-kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 10px; }
 .mdr-content .mdr-kpi-card { min-width: 0; padding: 15px; border: 1px solid var(--mdr-line); border-radius: 9px; background: var(--mdr-surface-muted); }
 .mdr-content .mdr-kpi-label { color: var(--mdr-ink-muted); font-size: var(--mdr-text-label); font-weight: 650; }
@@ -290,6 +292,10 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--mdr-accent); o
 
 .mdr-content .mdr-empty { padding: 24px 12px; border: 1px dashed var(--mdr-line-strong); border-radius: 8px; color: var(--mdr-ink-faint); font-size: 0.75rem; text-align: center; }
 .mdr-content .mdr-columns { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; margin: 1.4em 0; }
+.mdr-content .mdr-columns--3 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.mdr-content .mdr-columns--4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.mdr-content .mdr-columns--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.mdr-content .mdr-columns--6 { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .mdr-content .mdr-column { min-width: 0; padding: 18px; border: 1px solid var(--mdr-line); border-radius: 10px; background: var(--mdr-surface-muted); }
 .mdr-content .mdr-column > :first-child { margin-top: 0; }
 .mdr-content .mdr-column > :last-child { margin-bottom: 0; }
