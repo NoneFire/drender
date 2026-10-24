@@ -1,85 +1,85 @@
 ---
 name: drender-report
-description: Plan and create md-report/1 dashboards and analytical reports from supplied data, choosing suitable questions, visualizations, and layouts before rendering.
+description: 根据给定数据规划并创建 md-report/1 仪表盘和分析报告，先选择合适的问题、可视化方式与版式，再进行渲染。
 ---
 
 # drender-report
 
-Use this skill when creating or editing an analytical report or dashboard in the portable `md-report/1` format. Keep the source Markdown, its declared SQLite database, and any referenced `.sql` files together so the output remains reproducible and editable.
+创建或编辑可移植的 `md-report/1` 分析报告或仪表盘时使用此 Skill。将源 Markdown、其中声明的 SQLite 数据库和引用的 `.sql` 文件放在一起，保证结果可复现、可编辑。
 
-## Plan the analysis and layout first
+## 先规划分析问题与版式
 
-Start with the decision the reader needs to make. Turn the request into one primary question and, when useful, a small number of supporting questions. Preserve the audience, time range, comparison baseline, and requested level of detail. Do not invent missing fields or claim conclusions the data cannot support; state what additional data is needed.
+先明确读者需要据此做出什么决策。把需求归纳成一个核心问题，必要时再补充少量辅助问题。保留目标读者、时间范围、对比基准和要求的细节程度。不要臆造缺失字段，也不要声称数据无法支持的结论；说明还需要哪些数据。
 
-Inspect the available data before choosing components:
+选择组件前先检查现有数据：
 
-| Analysis question | Data shape | Recommended view |
+| 分析问题 | 数据形态 | 推荐视图 |
 | --- | --- | --- |
-| How is a measure changing over time? | Ordered time field plus numeric measures | `chart` kind `line`; use `area` when accumulated volume or magnitude is the focus. |
-| Which groups are higher or lower? | Categories plus a numeric measure | `chart` kind `bar`/`column`, or `ranking` when only the order matters. |
-| How is a whole divided among parts? | Categories sharing the same denominator and period | `chart` kind `pie` for a few parts, `treemap` for many, `ranking` for a sorted list. |
-| Where does conversion fall between ordered stages? | Ordered funnel stages with counts or rates | `chart` kind `funnel`; the default sort is descending, and `"sort":"none"` keeps the query's stage order. |
-| Do two numeric measures move together? | One row per observation with two numeric fields | `chart` kind `scatter`. Preserve individual observations. |
-| How do two categories cross? | Two categorical fields plus one measure | `pivot`; use `chart` kind `heatmap` when the value should read as intensity. |
-| Which records need follow-up? | Transaction/event rows with identifiers and attributes | A `data-table`; summarize first when the question is aggregate. |
-| What should the reader act on, and where is the evidence? | A handful of conclusions tied to named charts | `findings` with `evidence` anchors into charts declared with `anchor`. |
+| 某项指标随时间如何变化？ | 有序时间字段和数值指标 | 使用 `chart` 的 `line` 类型；重点展示累计规模或体量时用 `area`。 |
+| 哪些分组更高或更低？ | 分类字段和数值指标 | 使用 `chart` 的 `bar`/`column` 类型；只需比较顺序时用 `ranking`。 |
+| 总体由哪些部分构成？ | 分母和周期相同的分类数据 | 少量部分用 `chart` 的 `pie` 类型；部分较多时用 `treemap`；只需排序时用 `ranking`。 |
+| 转化在哪些有序阶段流失？ | 带计数或比率的有序漏斗阶段 | 使用 `chart` 的 `funnel` 类型；默认降序，`"sort":"none"` 会保留查询中的阶段顺序。 |
+| 两项数值指标是否共同变化？ | 每条观测一行，包含两个数值字段 | 使用 `chart` 的 `scatter` 类型，并保留每条原始观测。 |
+| 两个分类维度如何交叉？ | 两个分类字段和一个度量值 | 使用 `pivot`；需要用颜色深浅表示数值时用 `chart` 的 `heatmap` 类型。 |
+| 哪些记录需要跟进？ | 含标识和属性的交易或事件明细 | 使用 `data-table`；问题关注汇总时先聚合再展示。 |
+| 读者应采取什么行动，证据在哪里？ | 少量结论及其对应图表 | 使用 `findings`，通过 `evidence` 链接到声明了 `anchor` 的图表。 |
 
-Choose the document mode from the reading task, not from the data source:
+根据阅读任务选择文档模式，而不是根据数据来源选择：
 
-- **Dashboard:** use it to monitor a small set of current metrics and spot exceptions at a glance. It is a full-screen dark wallboard. Put headline KPIs first, the primary trend or comparison in the largest panel, then one or two useful breakdowns and a compact detail table. Keep long explanations, methodology, SQL, and secondary analyses in a companion report.
-- **Report:** use it to explain what happened and why, compare several cuts, inspect records, or review assumptions and caveats. Use a document flow: summary and findings, supporting charts, relevant detail, then interpretation, limitations, and method.
-- **Both:** when monitoring and explanation are both requested, create a concise dashboard and a separate report with compatible data snapshots. Do not squeeze a long report into dashboard panels.
+- **仪表盘：** 用于监控少量当前指标并快速发现异常。它是全屏深色看板。先放核心 KPI，再将主要趋势或对比放进最大面板，随后展示一两个有用的拆分和紧凑的明细表。较长的说明、方法、SQL 和次要分析应放在配套报告中。
+- **报告：** 用于解释发生了什么及其原因、比较多个维度、查看记录或复核假设与限制。按文档阅读顺序组织：摘要与发现、支撑图表、相关明细，最后是解读、限制和方法。
+- **两者都需要：** 同时要求监控和解释时，分别制作精简仪表盘与配套报告，并使用兼容的数据快照。不要把长报告塞进仪表盘面板。
 
-Declare each business number once in frontmatter `metrics` and reference it from prose, KPI cards, charts, and tables. A metric cannot then appear as two different values, and the reader-facing definition travels with it.
+每个业务数字只在文档头的 `metrics` 中声明一次，再从正文、KPI 卡片、图表和表格中引用。这样同一指标不会出现多个数值，读者也能同时看到指标定义。
 
-Reports automatically show a clickable table of contents when the body has at least two H2–H4 headings; dashboard layouts never include one. `toc: auto` (the default) expands it at 900 px and wider and collapses it on narrow screens. Use descriptive section headings so readers can scan and jump through long reports.
+正文至少有两个 H2–H4 标题时，报告会自动显示可点击目录；仪表盘不显示目录。默认设置 `toc: auto` 会在宽度达到 900 px 时展开目录，在窄屏上折叠目录。使用有描述性的分节标题，方便读者浏览长报告并跳转。
 
-Use the bundled open-source renderers for supported content instead of recreating their syntax or visuals in custom HTML: `markdown-it-anchor` and `markdown-it-toc-done-right` generate report heading links and the table of contents, AntV T8 renders `antv-t8` narratives, Apache ECharts renders charts, and Tabulator renders data tables. Keep Markdown components declarative and within the renderer's supported input schema.
+对支持的内容使用内置开源渲染器，不要用自定义 HTML 重造语法或视觉效果：`markdown-it-anchor` 和 `markdown-it-toc-done-right` 生成报告标题链接与目录；AntV T8 渲染 `antv-t8` 叙述；Apache ECharts 渲染图表；Tabulator 渲染数据表。Markdown 组件必须使用声明式写法，并符合渲染器支持的输入结构。
 
-Before rendering, check that each panel answers a named question, chart encodings fit the data, units and periods are visible, and repeated information has a clear purpose. Aggregate line, bar, column, area, funnel, combo, waterfall, and pie data upstream to one row per plotted coordinate or category. The renderer rejects duplicate coordinates rather than silently dropping observations. Numeric scatter charts preserve repeated x values, and `boxplot` computes its own quantiles from raw rows.
+渲染前检查每个面板是否回答了明确的问题、图表编码是否适合数据、单位和周期是否可见，以及重复信息是否有明确用途。折线、条形、柱形、面积、漏斗、组合、瀑布和饼图的数据应先聚合，保证每个绘制坐标或分类只有一行。渲染器会拒绝重复坐标，不会静默丢弃观测。数值散点图允许 x 值重复；`boxplot` 会从原始行自行计算分位数。
 
-## Document shape and components
+## 文档结构与组件
 
-Start with YAML frontmatter. It is the only place for the format, mode, title, metric definitions, data sources, and reader-facing chrome:
+从 YAML 文档头开始。格式、模式、标题、指标定义、数据源和面向读者的页面信息都必须放在这里：
 
 ```yaml
 ---
 format: md-report/1
 mode: report
-title: Monthly operating review
+title: 月度经营复盘
 ---
 ```
 
-| Frontmatter key | Type | Notes |
+| 文档头字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `format` | `md-report/1` | Required. |
-| `mode` | `report`, `dashboard` | Required. |
-| `title` | string, ≤120 characters | Required. Do not repeat it as an H1; a dashboard shows it in the top bar. |
-| `sqlite` | mapping | One workspace-relative database plus `datasets` and/or `scenes`. See Prepare and protect data. |
-| `assets` | mapping | Asset ID → workspace-relative image `path` and `mediaType`. |
-| `metrics` | mapping | Named metric definitions; see Declared metrics. |
-| `eyebrow`, `deck`, `status`, `footer` | string, ≤200 characters | Reader-facing chrome, omitted when empty. `eyebrow` falls back to a built-in label; `status` renders in the dashboard top bar. |
-| `toc` | `auto`, `open`, `collapsed` | Default `auto`. |
-| `theme` | `auto`, `light`, `dark` | Default `auto`; follows the reader's system and renders a toggle in report mode. A dashboard is always dark. |
+| `format` | `md-report/1` | 必填。 |
+| `mode` | `report`、`dashboard` | 必填。 |
+| `title` | 字符串，最多 120 个字符 | 必填。不要再用 H1 重复标题；仪表盘会把它显示在顶部栏。 |
+| `sqlite` | 映射 | 一个相对于工作区的数据库，以及 `datasets` 和/或 `scenes`。详见“准备和保护数据”。 |
+| `assets` | 映射 | 资源 ID 对应工作区相对图片 `path` 和 `mediaType`。 |
+| `metrics` | 映射 | 命名指标定义；详见“声明指标”。 |
+| `eyebrow`、`deck`、`status`、`footer` | 字符串，最多 200 个字符 | 面向读者的页面信息；为空时省略。`eyebrow` 默认使用内置标签；`status` 显示在仪表盘顶部栏。 |
+| `toc` | `auto`、`open`、`collapsed` | 默认值为 `auto`。 |
+| `theme` | `auto`、`light`、`dark` | 默认值为 `auto`，跟随读者系统设置，并在报告模式显示切换按钮。仪表盘始终使用深色主题。 |
 
-Any other frontmatter key is an error. Use `mode: dashboard` only when the body contains exactly one top-level `:::: dashboard columns=12` container. Use flat panels declared as `::: panel span=1` through `::: panel span=12`, each closed by `:::`, and close the dashboard with `::::`. The wallboard adapts to narrow screens by stacking panels.
+任何其他文档头字段都会报错。只有正文恰好包含一个顶层 `:::: dashboard columns=12` 容器时才使用 `mode: dashboard`。使用 `::: panel span=1` 到 `::: panel span=12` 声明平铺面板，每个面板用 `:::` 结束，整个仪表盘用 `::::` 结束。窄屏上面板会自动纵向堆叠。
 
-The global base font defaults to 14 px. When the host supports a render font-size option, use 12–20 px to scale report, dashboard, table, and chart text together.
+全局基础字号默认为 14 px。宿主支持渲染字号选项时，可用 12–20 px 一并缩放报告、仪表盘、表格和图表文字。
 
-Body content:
+正文可以包含：
 
-- Standard Markdown headings, paragraphs, quotes, lists, fenced code, links, and small pipe tables.
-- Callouts: `::: note`, `::: warning`, and `::: success`, closed by `:::`.
-- Layout: `[column` blocks closed by a line containing `]`, and `[details summary` blocks (append `open` to start expanded) closed the same way.
-- Data components in JSON fences: `kpi`, `chart`, `data-table`, `ranking`, `pivot`, `findings`, `provenance`, `quality`.
-- Diagrams and narrative: `sql`, `mermaid`, `infographic`, `antv-t8`, `excalidraw`.
-- Raster images referenced as `![description](asset:asset_id)` with a matching `assets` frontmatter entry.
+- 标准 Markdown 标题、段落、引用、列表、围栏代码、链接和较小的管道表格。
+- 提示框：`::: note`、`::: warning` 和 `::: success`，均以 `:::` 结束。
+- 布局：以独占一行的 `]` 结束的 `[column` 分栏块，以及同样以 `]` 结束的 `[details summary` 折叠块（追加 `open` 可让折叠块默认展开）。
+- JSON 围栏中的数据组件：`kpi`、`chart`、`data-table`、`ranking`、`pivot`、`findings`、`provenance`、`quality`。
+- 图表与叙述围栏：`sql`、`mermaid`、`infographic`、`antv-t8`、`excalidraw`。
+- 通过 `![描述](asset:资源ID)` 引用的栅格图片，并在文档头 `assets` 中声明相应资源。
 
-Every JSON component is validated against the allowed keys in the tables below. Any other key is rejected with `component.unknown-key`; a typo can no longer silently drop a field. Fence attributes are also restricted to `dialect=`, `title="..."`, `kicker="..."`, and the bare `engine` flag, and any other attribute is rejected with `component.info-token`.
+每个 JSON 组件都会按下方表格校验允许的键。其他键会触发 `component.unknown-key`，拼写错误不会再悄悄丢弃字段。围栏属性仅允许 `dialect=`、`title="..."`、`kicker="..."` 和单独的 `engine` 标记；其他属性都会触发 `component.info-token`。
 
-## Declared metrics
+## 声明指标
 
-A metric is declared once in frontmatter and referenced from `{{metric_id}}` tokens, `metricRef` (KPI items, charts, rankings, findings), and `formatRef` (table columns). Metric IDs must match `[A-Za-z][A-Za-z0-9._-]{0,127}`. A metric takes either a literal `value` or a `dataRef` + `field` binding, never both; the binding reads the first row of that dataset.
+指标只在文档头中声明一次，再通过 `{{metric_id}}` token、`metricRef`（KPI 项、图表、排行、发现卡）和 `formatRef`（表格列）引用。指标 ID 必须符合 `[A-Za-z][A-Za-z0-9._-]{0,127}`。每项指标只能使用字面量 `value`，或 `dataRef` + `field` 绑定；两种来源不能同时设置。绑定会读取对应数据集的第一行。
 
 ```yaml
 metrics:
@@ -104,46 +104,46 @@ metrics:
     owner: 经营分析组
 ```
 
-| Metric key | Type | Notes |
+| 指标字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `label` | string | Display name; defaults to the metric ID. |
-| `value` | finite number or string | Literal value. Mutually exclusive with `dataRef`/`field`. |
-| `dataRef` | dataset ID | Must be materialized for this report. |
-| `field` | non-empty string | Column in the first row of that dataset. |
-| `format` | `number`, `currency`, `percent`, `percentage-points`, `ratio`, `date`, `text` | Display format. `date` and `text` render the raw value. |
-| `currency` | three-letter ISO 4217 code | Only with `format: currency`; defaults to `CNY`. |
-| `decimals` | integer 0–6 | Fraction digits. Defaults: percent and percentage points 1; currency 0, or 1 when `compact`; ratio 2; compact 1; otherwise 0 for integers and 2 for fractions. |
-| `unit` | string | Appended after the value, without a space for CJK units. Tokens and findings include it; KPI cards show it in the value's unit slot. |
-| `compact` | boolean | Compact notation: `1007000` renders as `100.7万`. |
-| `scale` | finite number | Multiplies the value before display. |
-| `goodDirection` | `up`, `down`, `neutral` | Which sign counts as good. `down` makes a falling refund rate read as positive; default `up`. |
-| `comparison` | mapping | Baseline and period, below. |
-| `definition`, `numerator`, `denominator`, `source`, `asOf`, `owner` | string | Reader-facing provenance for the `provenance` component. |
+| `label` | 字符串 | 展示名称；默认使用指标 ID。 |
+| `value` | 有限数值或字符串 | 字面量。不能与 `dataRef`/`field` 同时使用。 |
+| `dataRef` | 数据集 ID | 必须在本报告中物化。 |
+| `field` | 非空字符串 | 对应数据集第一行中的列。 |
+| `format` | `number`、`currency`、`percent`、`percentage-points`、`ratio`、`date`、`text` | 展示格式。`date` 和 `text` 会原样显示数值。 |
+| `currency` | 三位 ISO 4217 代码 | 仅与 `format: currency` 搭配；默认 `CNY`。 |
+| `decimals` | 0–6 的整数 | 小数位数。默认值：百分比和百分点为 1；货币为 0（`compact` 时为 1）；比率为 2；紧凑数值为 1；其他数值整数为 0、小数为 2。 |
+| `unit` | 字符串 | 追加在数值后；中日韩文字单位前不加空格。Token 和发现卡会显示单位；KPI 卡会在数值单位位置显示。 |
+| `compact` | 布尔值 | 使用紧凑计数法，例如 `1007000` 显示为 `100.7万`。 |
+| `scale` | 有限数值 | 展示前乘以该系数。 |
+| `goodDirection` | `up`、`down`、`neutral` | 哪个变化方向算作正向。`down` 可让退款率下降显示为正向；默认 `up`。 |
+| `comparison` | 映射 | 基准值和周期，见下文。 |
+| `definition`、`numerator`、`denominator`、`source`、`asOf`、`owner` | 字符串 | 提供给 `provenance` 组件展示的指标来源信息。 |
 
-`comparison` accepts exactly `kind`, `value`, `dataRef`, `field`, `asPercent`, `pointsDelta`, and `period`:
+`comparison` 仅接受 `kind`、`value`、`dataRef`、`field`、`asPercent`、`pointsDelta` 和 `period`：
 
-| Comparison key | Type | Notes |
+| 对比字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `kind` | `mom`, `yoy`, `target`, `none` | Defaults to `mom` when a baseline is present. `none` suppresses direction. |
-| `value` | finite number | Literal baseline. Mutually exclusive with `dataRef`/`field`. |
-| `dataRef`, `field` | dataset ID and column | Baseline read from the first row of another declared dataset. |
-| `asPercent` | boolean | Accepted; a ratio is already the default, so `pointsDelta` is the key that changes the math. |
-| `pointsDelta` | boolean | Compare as an absolute difference in percentage points instead of a ratio. |
-| `period` | string | Period label. Defaults to `环比` for `mom`, `同比` for `yoy`, `较目标` for `target`. |
+| `kind` | `mom`、`yoy`、`target`、`none` | 存在基准值时默认 `mom`。`none` 会隐藏变化方向。 |
+| `value` | 有限数值 | 字面量基准值。不能与 `dataRef`/`field` 同时使用。 |
+| `dataRef`、`field` | 数据集 ID 和列名 | 从另一个已声明数据集的第一行读取基准值。 |
+| `asPercent` | 布尔值 | 可接受。默认已经按比率计算；改变计算方式时使用 `pointsDelta`。 |
+| `pointsDelta` | 布尔值 | 按百分点绝对差计算，不按比率计算。 |
+| `period` | 字符串 | 周期标签。`mom` 默认为 `环比`，`yoy` 默认为 `同比`，`target` 默认为 `较目标`。 |
 
-`format: percent` renders the ratio itself; `format: percentage-points` renders a difference and appends `pp`. Without `pointsDelta` the change is `value / baseline − 1` and renders as a percentage; with `pointsDelta: true` it is `value − baseline` and renders as `pp`. Use percentage points for a share or rate that moved, and a ratio when the relative change is the question.
+`format: percent` 显示比率；`format: percentage-points` 显示差值并追加 `pp`。不设置 `pointsDelta` 时，变化量为 `value / baseline − 1`，以百分比显示；设置 `pointsDelta: true` 时，变化量为 `value − baseline`，以 `pp` 显示。占比或费率本身变化时使用百分点；关注相对变化时使用比率。
 
-A metric that names a `denominator` joins a share group: every metric sharing that same denominator string (with `percent` or `ratio` format) must sum to 1 within ±0.005, or validation fails with `metric.share-sum`. This is what catches a breakdown that no longer adds up.
+声明 `denominator` 的指标会加入占比组：使用相同分母字符串且格式为 `percent` 或 `ratio` 的指标，其合计必须在 1 的 ±0.005 范围内，否则校验会报告 `metric.share-sum`。这样可以发现明细加总后不再等于整体的情况。
 
-`{{metric_id}}` resolves to the formatted value with its unit in ordinary prose and inside `antv-t8`, `infographic`, and `mermaid` fences. An unresolved token is an error (`metric.token-unresolved`). An `antv-t8` narrative that references no metric token only warns (`t8.metric-token-missing`) that its numbers are hard-coded. When a T8 link displays a metric token and also declares `origin=`, the two must agree.
+`{{metric_id}}` 会在普通正文以及 `antv-t8`、`infographic`、`mermaid` 围栏中替换为带单位的格式化数值。无法解析的 token 属于错误（`metric.token-unresolved`）。`antv-t8` 叙述没有引用指标 token 时，只会警告 `t8.metric-token-missing`，提示其中的数字是硬编码值。T8 链接同时显示指标 token 并声明 `origin=` 时，两者必须对应同一指标。
 
-## Component field reference
+## 组件字段说明
 
-### `kpi` — headline single values
+### `kpi` — 核心指标卡
 
-Answers: how do a few key values read at a glance, with their units and comparison?
+用途：让读者一眼看到少量关键数值、单位和对比结果。
 
-Block keys: `items` (1–12 objects), `title`, `kicker`.
+块级字段：`items`（1–12 个对象）、`title`、`kicker`。
 
 ```kpi
 {"title":"关键指标","kicker":"指标摘要","items":[
@@ -153,143 +153,143 @@ Block keys: `items` (1–12 objects), `title`, `kicker`.
 {"label":"单笔上限","value":5000,"format":"currency:CNY"}]}
 ```
 
-| Item key | Type | Notes |
+| 项字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `metricRef` | metric ID | Takes value, unit, format, and comparison from the metric. Cannot be combined with `value`, `dataRef`, `field`, or `changeField`. |
-| `label` | string | Required unless `metricRef` names a metric that declares a label. |
-| `value` | finite number or string | Literal value. |
-| `dataRef` + `field` | dataset ID + column | The dataset must return exactly one summary row, and the field must exist in it. |
-| `change` | finite number | Literal change as a ratio: `0.05` displays as `+5.0%`. Cannot be combined with `changeField`. |
-| `changeField` | string column | Reads a numeric ratio from the same summary row as `dataRef`/`field`. |
-| `changeFormat` | `percent`, `percentage-points` | How the change renders. Default `percent`. |
-| `period` | string | Literal period label, default `环比`. Cannot be combined with `periodField`. |
-| `periodField` | string column | Reads a text period from the same summary row. |
-| `direction` | `positive`, `negative`, `neutral` | Absolute override of the comparison colour. May be combined with `change`/`changeField`; it wins over inference. |
-| `goodDirection` | `up`, `down`, `neutral` | Which sign is good when `direction` is not set (or comes from a `metricRef`). |
-| `format`, `currency`, `decimals`, `compact`, `scale` | as in a metric | Display overrides for a literal or `dataRef`/`field` item. |
-| `unit` | string | Overrides the unit shown on the card. |
-| `sparkline` | mapping | `{"dataRef","x","y","title"}` draws an inline SVG trend; the dataset needs at least two rows. |
-| `anchor` | string | Stable in-page id for this card. |
+| `metricRef` | 指标 ID | 从指标定义中读取数值、单位、格式和对比。不能与 `value`、`dataRef`、`field` 或 `changeField` 同时使用。 |
+| `label` | 字符串 | 必填；若 `metricRef` 指向的指标已声明标签，则可以省略。 |
+| `value` | 有限数值或字符串 | 字面量数值。 |
+| `dataRef` + `field` | 数据集 ID + 列名 | 数据集必须恰好返回一行汇总数据，且其中必须存在该列。 |
+| `change` | 有限数值 | 字面变化比率，例如 `0.05` 显示为 `+5.0%`。不能与 `changeField` 同时使用。 |
+| `changeField` | 字符串列名 | 从 `dataRef`/`field` 对应的同一汇总行读取数值比率。 |
+| `changeFormat` | `percent`、`percentage-points` | 变化量的显示方式，默认为 `percent`。 |
+| `period` | 字符串 | 字面周期标签，默认为 `环比`。不能与 `periodField` 同时使用。 |
+| `periodField` | 字符串列名 | 从同一汇总行读取文本周期。 |
+| `direction` | `positive`、`negative`、`neutral` | 强制指定对比颜色。可与 `change`/`changeField` 同时使用，并优先于自动判断。 |
+| `goodDirection` | `up`、`down`、`neutral` | 未设置 `direction` 时，指定哪种变化方向为正向；也适用于从 `metricRef` 继承的值。 |
+| `format`、`currency`、`decimals`、`compact`、`scale` | 同指标定义 | 为字面量或 `dataRef`/`field` 项覆盖显示格式。 |
+| `unit` | 字符串 | 覆盖卡片显示的单位。 |
+| `sparkline` | 映射 | `{"dataRef","x","y","title"}` 绘制内嵌 SVG 趋势线；数据集至少需要两行。 |
+| `anchor` | 字符串 | 卡片稳定的页内锚点 ID。 |
 
-Every item needs exactly one value source: `metricRef`, a literal `value`, or `dataRef` + `field`. `changeField` and `periodField` require a `dataRef`/`field` binding, and their columns must exist in the summary row.
+每个项必须且只能有一种数值来源：`metricRef`、字面量 `value` 或 `dataRef` + `field`。`changeField` 和 `periodField` 需要 `dataRef`/`field` 绑定，且对应列必须存在于汇总行中。
 
-### `chart` — cartesian, part-to-whole, and special plots
+### `chart` — 趋势、构成及特殊图表
 
-Answers: how does a value move across a dimension, how is a whole divided, or what shape does the distribution have?
+用途：展示数值沿某个维度的变化、整体构成，或数据分布形态。
 
-Block keys: `kind`, `dataRef`, `x`, `y`, `series`, `title`, `unit`, `kicker`, `metricRef`, `axisFormat`, `anchor`, `targets`, `bands`, `points`, plus the kind-specific keys `value`, `name`, `mapName`, `geo`, `open`, `high`, `low`, `close`, `volume`, `source`, `target`, `totalField`, `sort`, `min`, `max`.
+块级字段：`kind`、`dataRef`、`x`、`y`、`series`、`title`、`unit`、`kicker`、`metricRef`、`axisFormat`、`anchor`、`targets`、`bands`、`points`，以及图表类型专用字段 `value`、`name`、`mapName`、`geo`、`open`、`high`、`low`、`close`、`volume`、`source`、`target`、`totalField`、`sort`、`min`、`max`。
 
 ```chart
 {"kind":"line","title":"月营收走势（按区域）","dataRef":"monthly_by_region","x":"month","y":"revenue","series":"region","unit":"元","anchor":"revenue-trend"}
 ```
 
-`dataRef` is required, and `x` and `y` must exist in the dataset. With `metricRef`, `y` and `unit` come from the metric instead; do not also declare `y` or `unit`. `series` is a field name for multi-series `line`/`area` charts, and an array of series entries for `combo`. `axisFormat` accepts `format`, `decimals`, `compact`, `currency`, and `scale` and overrides the value-axis formatting.
+`dataRef` 必填，且 `x` 和 `y` 必须是数据集中的字段。使用 `metricRef` 时，`y` 和 `unit` 会从指标定义读取，不要再声明这两个字段。多系列 `line`/`area` 图表的 `series` 是字段名；`combo` 图表的 `series` 是系列对象数组。`axisFormat` 接受 `format`、`decimals`、`compact`、`currency` 和 `scale`，用于覆盖数值轴格式。
 
-| Kind | Required keys | Notes |
+| 类型 | 必填字段 | 说明 |
 | --- | --- | --- |
-| `line`, `bar`, `column`, `area` | `x`, `y` (or `metricRef`) | One row per x/series coordinate. `series` splits the lines. |
-| `scatter` | `x`, `y` (or `metricRef`) | When every x parses as a number the chart uses a numeric axis; repeated x values are allowed. |
-| `pie` | `x`, `y` (or `metricRef`) | One row per category; repeated categories are rejected. |
-| `funnel` | `x`, `y` | `"sort":"none"` keeps the query's stage order; the default is descending. |
-| `combo` | `x`, `series` (1–6) | Dual-axis composition; one row per x. |
-| `waterfall` | `x`, `y` | `totalField` names a truthy column marking total rows. |
-| `candlestick` | `x`, `open`, `high`, `low`, `close` | Optional `volume` adds a secondary axis and a zoom bar. |
-| `boxplot` | `x`, `y` | Quantiles are computed in the browser; supply raw rows. |
-| `heatmap` | `x`, `y`, `value` | `x` and `y` are category axes, `value` is intensity. |
-| `sankey` | `source`, `target`, `y` | Flow from source nodes to target nodes. |
-| `treemap` | `x`, `y` | Relative size of parts. |
-| `radar` | `x`, `y` | `x` is the dimension, `y` the score; optional `series` groups the polygons. |
-| `gauge` | `y` or `value` | `min` (default 0) and `max` (default 100) set the range. |
-| `map` | `name`, `value`, `geo` | `geo` is an inline GeoJSON object. The geometry travels with the document, which is what keeps the export offline; a real deployment supplies its own GeoJSON. |
+| `line`、`bar`、`column`、`area` | `x`、`y`（或 `metricRef`） | 每个 x/系列坐标一行。`series` 用于拆分多条曲线。 |
+| `scatter` | `x`、`y`（或 `metricRef`） | 所有 x 值均可解析为数值时使用数值轴；允许 x 值重复。 |
+| `pie` | `x`、`y`（或 `metricRef`） | 每个分类一行；不允许分类重复。 |
+| `funnel` | `x`、`y` | `"sort":"none"` 保留查询的阶段顺序；默认按降序排列。 |
+| `combo` | `x`、`series`（1–6 项） | 双轴组合图；每个 x 值一行。 |
+| `waterfall` | `x`、`y` | `totalField` 指定一个真值列，用于标记总计行。 |
+| `candlestick` | `x`、`open`、`high`、`low`、`close` | 可选 `volume` 会增加副轴和缩放条。 |
+| `boxplot` | `x`、`y` | 在浏览器中计算分位数；请提供原始行。 |
+| `heatmap` | `x`、`y`、`value` | `x` 和 `y` 是分类轴，`value` 表示强度。 |
+| `sankey` | `source`、`target`、`y` | 展示从源节点流向目标节点的数量。 |
+| `treemap` | `x`、`y` | 展示各部分的相对规模。 |
+| `radar` | `x`、`y` | `x` 是维度，`y` 是分值；可用 `series` 对多组多边形分组。 |
+| `gauge` | `y` 或 `value` | 使用 `min`（默认 0）和 `max`（默认 100）设置范围。 |
+| `map` | `name`、`value`、`geo` | `geo` 是内嵌 GeoJSON 对象。几何数据随文档一起保存以支持离线导出；真实部署需自行提供 GeoJSON。 |
 
 ```chart
 {"kind":"combo","title":"营收与华东集中度","dataRef":"monthly_share","x":"month","unit":"元","axisFormat":{"format":"currency","compact":true},"series":[{"field":"revenue","type":"bar","axis":0,"name":"月度营收"},{"field":"share_east","type":"line","axis":1,"name":"华东占比","format":"percent"}]}
 ```
 
-| `combo` series key | Type | Notes |
+| `combo` 系列字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `field` | string | Numeric column in the dataset. |
-| `type` | `line`, `bar`, `area` | Default `line`. |
-| `axis` | `0`, `1` | Which value axis the series uses; default 0. |
-| `name` | string | Legend label; defaults to the field. |
-| `stack` | boolean or string | Stacks series that share the value; a string names the stack group. |
-| `format`, `decimals`, `compact` | as in a metric | Per-series formatting. |
+| `field` | 字符串 | 数据集中的数值列。 |
+| `type` | `line`、`bar`、`area` | 默认 `line`。 |
+| `axis` | `0`、`1` | 系列使用的数值轴；默认 0。 |
+| `name` | 字符串 | 图例标签；默认使用字段名。 |
+| `stack` | 布尔值或字符串 | 堆叠具有相同值的系列；字符串用于命名堆叠组。 |
+| `format`、`decimals`、`compact` | 同指标定义 | 单个系列的数值格式。 |
 
-Cartesian, `combo`, and `waterfall` charts also accept three annotation layers. Each is an array of at most 20 entries:
+笛卡尔坐标系、`combo` 和 `waterfall` 图表还支持三类标注。每类最多包含 20 项：
 
-| Layer | Keys | Notes |
+| 标注层 | 字段 | 说明 |
 | --- | --- | --- |
-| `targets` | `value` (required), `label`, `axis` (`x`/`y`), `color` | Dashed reference line. |
-| `bands` | `from`, `to` (both required), `axis` (`x`/`y`), `label` | Shaded interval. |
-| `points` | `x`, `y` (both required), `text` | Labelled marker; `axis` is not allowed. |
+| `targets` | `value`（必填）、`label`、`axis`（`x`/`y`）、`color` | 虚线参考线。 |
+| `bands` | `from`、`to`（必填）、`axis`（`x`/`y`）、`label` | 阴影区间。 |
+| `points` | `x`、`y`（必填）、`text` | 带标签的标记点；不允许设置 `axis`。 |
 
 ```chart
 {"kind":"line","title":"华东占比趋势","dataRef":"monthly_share","x":"month","y":"share_east","unit":"比例","axisFormat":{"format":"percent"},"anchor":"region-concentration","targets":[{"value":0.5,"label":"50% 参考线"}]}
 ```
 
-A report-mode chart container is 250 px tall; inside a dashboard panel the chart fills the panel.
+报告模式下图表容器高度为 250 px；在仪表盘面板中，图表会填满整个面板。
 
-### `data-table` — row-level detail
+### `data-table` — 行级明细
 
-Answers: which records need inspection, sorting, or export?
+用途：展示需要检查、排序或导出的记录。
 
-Block keys: `dataRef`, `title`, `kicker`, `anchor`, `columns`, `defaultSort`, `viewportHeight`, `exportable`, `updatedAt`.
+块级字段：`dataRef`、`title`、`kicker`、`anchor`、`columns`、`defaultSort`、`viewportHeight`、`exportable`、`updatedAt`。
 
 ```data-table
 {"dataRef":"regional_revenue","title":"区域明细","kicker":"数据表","columns":[{"field":"region","label":"区域","width":120,"frozen":true},{"field":"orders","label":"订单数","format":"number","sorter":"number"},{"field":"revenue","label":"营收","formatRef":"region_revenue","minWidth":140}],"defaultSort":{"field":"revenue","direction":"desc"},"viewportHeight":320,"exportable":true,"updatedAt":"2026-10-31"}
 ```
 
-| Block key | Type | Notes |
+| 块级字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `dataRef` | dataset ID | Required. |
-| `columns` | non-empty array | Omit to show every dataset column. |
-| `defaultSort` | `{field, direction}` | `direction` is `asc` or `desc` (default `asc`); the field must be a displayed column. |
-| `viewportHeight` | number | Default 480; values outside 160–1200 are warned about and clamped. |
-| `exportable` | boolean | Default true. Renders export controls that write into a polite live region; `false` hides them. |
-| `updatedAt` | string | Overrides the dataset's updated-at in the provenance line. |
-| `anchor` | string | Stable in-page id. |
+| `dataRef` | 数据集 ID | 必填。 |
+| `columns` | 非空数组 | 省略时显示数据集中的所有列。 |
+| `defaultSort` | `{field, direction}` | `direction` 为 `asc` 或 `desc`（默认 `asc`）；字段必须是当前显示的列。 |
+| `viewportHeight` | 数值 | 默认 480；超出 160–1200 时会发出警告并限制在范围内。 |
+| `exportable` | 布尔值 | 默认 `true`。显示导出控件，并通过礼貌式实时区域反馈；设为 `false` 时隐藏控件。 |
+| `updatedAt` | 字符串 | 覆盖来源信息行中的数据集更新时间。 |
+| `anchor` | 字符串 | 稳定的页内锚点 ID。 |
 
-| Column key | Type | Notes |
+| 列字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `field` | string | Required, must exist in the dataset, and must be unique. |
-| `label` | string | Header text; defaults to the field. |
-| `format` | `currency:CNY`, `percent`, `percentage-points`, `compact`, `number` | Cell formatting. Any ISO 4217 code works after `currency:`. |
-| `formatRef` | metric ID | Reuses the named metric's `format`. |
-| `width`, `minWidth` | positive numbers | Pixel widths. |
-| `frozen` | boolean | Keeps the column visible while scrolling. |
-| `sorter` | string | Tabulator sorter name; defaults to `number` for a numeric sample and `string` otherwise. |
+| `field` | 字符串 | 必填，必须存在于数据集中，且不能重复。 |
+| `label` | 字符串 | 表头文字；默认使用字段名。 |
+| `format` | `currency:CNY`、`percent`、`percentage-points`、`compact`、`number` | 单元格格式。`currency:` 后可使用任意 ISO 4217 货币代码。 |
+| `formatRef` | 指标 ID | 复用指定指标的 `format`。 |
+| `width`、`minWidth` | 正数 | 列宽，单位为像素。 |
+| `frozen` | 布尔值 | 滚动时固定显示该列。 |
+| `sorter` | 字符串 | Tabulator 排序器名称；样本为数值时默认 `number`，否则默认 `string`。 |
 
-At most 5,000 rows are displayed.
+最多显示 5,000 行。
 
-### `ranking` — sorted bar list
+### `ranking` — 排序列表
 
-Answers: who leads, when a full axis is not needed?
+用途：无需完整坐标轴时，展示谁领先以及领先幅度。
 
-Keys: `dataRef`, `x`, `y`, `title`, `kicker`, `anchor`, `limit`, `format`, `currency`, `unit`, `decimals`, `compact`, `share`, `metricRef`.
+字段：`dataRef`、`x`、`y`、`title`、`kicker`、`anchor`、`limit`、`format`、`currency`、`unit`、`decimals`、`compact`、`share`、`metricRef`。
 
 ```ranking
 {"dataRef":"regional_revenue","x":"region","y":"revenue","title":"区域营收排行","kicker":"排行","limit":3,"format":"currency","compact":true,"share":true,"anchor":"region-ranking"}
 ```
 
-`dataRef` and `x` are required. Take the value from `y` or from `metricRef`, not both; a `metricRef` metric must read the same dataset the block declares. `limit` is 1–50 (default 10). `share` defaults to true and shows each row's share of the total. Format keys behave as in a metric.
+`dataRef` 和 `x` 必填。数值来自 `y` 或 `metricRef`，二者不能同时使用；`metricRef` 指向的指标必须读取此块声明的数据集。`limit` 范围为 1–50，默认 10。`share` 默认 `true`，会显示每行占总量的比例。格式字段与指标定义相同。
 
-### `pivot` — cross-tabulation
+### `pivot` — 交叉表
 
-Answers: how do two categorical dimensions cross?
+用途：展示两个分类维度的交叉结果。
 
-Keys: `dataRef`, `rows`, `columns`, `value`, `agg`, `title`, `kicker`, `anchor`, `format`, `currency`, `unit`, `decimals`, `compact`, `rowTotal`, `columnTotal`, `metricRef`, `rowsLabel`, `columnsLabel`.
+字段：`dataRef`、`rows`、`columns`、`value`、`agg`、`title`、`kicker`、`anchor`、`format`、`currency`、`unit`、`decimals`、`compact`、`rowTotal`、`columnTotal`、`metricRef`、`rowsLabel`、`columnsLabel`。
 
 ```pivot
 {"dataRef":"region_month","rows":"region","columns":"month","value":"revenue","agg":"sum","title":"区域与月份营收","kicker":"交叉表","format":"currency","compact":true,"rowTotal":true,"columnTotal":true}
 ```
 
-`dataRef`, `rows`, `columns`, and `value` are all required, and each named field must exist. `agg` is `sum`, `avg`, `min`, `max`, `count`, or `first` (default `sum`); `value` must be numeric in every row unless `agg` is `count`. `rowTotal` defaults to true and `columnTotal` to false. `rowsLabel` and `columnsLabel` default to the field names. `metricRef` reuses the metric's formatting (its `value` is still declared on the block).
+`dataRef`、`rows`、`columns` 和 `value` 均必填，且每个字段都必须存在。`agg` 可选 `sum`、`avg`、`min`、`max`、`count` 或 `first`，默认 `sum`；除非 `agg` 为 `count`，否则每行的 `value` 都必须是数值。`rowTotal` 默认 `true`，`columnTotal` 默认 `false`。`rowsLabel` 和 `columnsLabel` 默认使用字段名。`metricRef` 会复用指标格式，但 `value` 仍需在当前块中声明。
 
-### `findings` — severity-coded conclusions
+### `findings` — 按严重程度标注的结论
 
-Answers: what should the reader act on, and where is the evidence?
+用途：指出读者应采取的行动及其证据所在。
 
-Block keys: `title`, `kicker`, `anchor`, `items` (1–12 objects).
+块级字段：`title`、`kicker`、`anchor`、`items`（1–12 个对象）。
 
 ```findings
 {"title":"发现卡与证据锚点","kicker":"发现","items":[
@@ -297,42 +297,42 @@ Block keys: `title`, `kicker`, `anchor`, `items` (1–12 objects).
 {"severity":"risk","title":"必需字段缺失会直接校验失败","detail":"chart 与 data-table 必须声明 dataRef。","action":"按各节语法逐项补齐必需键","owner":"报告作者"}]}
 ```
 
-| Item key | Type | Notes |
+| 项字段 | 类型 | 说明 |
 | --- | --- | --- |
-| `title` | string | Required. |
-| `severity` | `risk`, `opportunity`, `info`, `positive` | Colour code; default `info`. |
-| `detail` | string | Supporting sentence. |
-| `metricRef` | metric ID | Shows the metric's formatted value with unit. |
-| `evidence` | array of anchor ids | Each becomes a link to `#anchor` on the component that declares it. |
-| `action`, `owner` | string | Rendered as an action line with an owner. |
+| `title` | 字符串 | 必填。 |
+| `severity` | `risk`、`opportunity`、`info`、`positive` | 颜色类别；默认 `info`。 |
+| `detail` | 字符串 | 补充说明。 |
+| `metricRef` | 指标 ID | 显示带单位的格式化指标值。 |
+| `evidence` | 锚点 ID 数组 | 每项都会链接到声明该锚点的组件中的 `#anchor`。 |
+| `action`、`owner` | 字符串 | 显示为包含负责人的行动项。 |
 
-### `provenance` — metric definitions appendix
+### `provenance` — 指标口径附录
 
-Answers: where does each number come from, and who owns it?
+用途：说明各项数字的来源和负责人。
 
-Keys: `title`, `kicker`, `anchor`, `items`.
+字段：`title`、`kicker`、`anchor`、`items`。
 
 ```provenance
 {"title":"指标口径附录","kicker":"口径"}
 ```
 
-Omitting `items` lists every declared metric. `items` is an array of metric IDs, each of which must be declared. Columns come from `definition`, `numerator`/`denominator`, `source`, `asOf`, and `owner`.
+省略 `items` 时会列出所有已声明指标。`items` 是指标 ID 数组，其中每项都必须已声明。表格列取自 `definition`、`numerator`/`denominator`、`source`、`asOf` 和 `owner`。
 
-### `quality` — dataset health
+### `quality` — 数据集健康度
 
-Answers: is the data complete, fresh, and the size the reader expects?
+用途：检查数据是否完整、及时，数据规模是否符合预期。
 
-Keys: `title`, `kicker`, `anchor`, `dataRefs`, `notes`.
+字段：`title`、`kicker`、`anchor`、`dataRefs`、`notes`。
 
 ```quality
 {"dataRefs":["summary","regional_revenue","order_details"],"title":"数据质量","kicker":"质量","notes":["省略 dataRefs 时列出全部已声明数据集。"]}
 ```
 
-`dataRefs` is an array of materialized dataset IDs; omitting it reports every declared dataset. The component computes row and column counts, the columns with missing values (empty string or null), and the source, updated-at, and fetched-at metadata. `notes` is an array of strings for caveats a count cannot express.
+`dataRefs` 是已物化数据集 ID 数组；省略时会检查所有已声明数据集。组件会计算行数、列数、存在缺失值（空字符串或 null）的列，并显示来源、更新时间和读取时间。`notes` 是字符串数组，用来补充数量统计无法表达的限制。
 
-### `sql` — display-only query text
+### `sql` — 仅展示查询文本
 
-Answers: which check query proves the numbers?
+用途：展示用于复核报告数字的查询语句。
 
 ````markdown
 ```sql dialect=sqlite title="区域营收与占比"
@@ -342,11 +342,11 @@ ORDER BY revenue DESC
 ```
 ````
 
-`dialect` is `standard` (default), `postgresql`, `mysql`, `bigquery`, `duckdb`, or `sqlite`. The query is formatted for display and never executed by the renderer, but a report that publishes a check query should ensure it runs against the declared database.
+`dialect` 可选 `standard`（默认）、`postgresql`、`mysql`、`bigquery`、`duckdb` 或 `sqlite`。查询只会格式化后展示，渲染器不会执行它。报告若附带复核查询，应先确认该查询能在声明的数据库上运行。
 
-### `mermaid`, `infographic`, `antv-t8` — diagrams and narrative
+### `mermaid`、`infographic`、`antv-t8` — 图表与叙述
 
-These three fences carry prose, so `{{metric_id}}` tokens resolve inside them.
+这三种围栏包含自然语言正文，因此其中的 `{{metric_id}}` token 会被解析。
 
 ```mermaid title="组件渲染链路" kicker="流程图"
 flowchart LR
@@ -366,21 +366,21 @@ data
 10 月营收为[{{oct_revenue}}](metric_value)，环比[{{revenue_mom}}](ratio_value, assessment="positive")。
 ```
 
-Use the diagram types and syntax supported by the pinned Mermaid version, with `securityLevel: strict`. Choose an Infographic template that matches the content structure and include its required data. T8 supports metric, ratio, delta, trend, distribution, rank, and anomaly entities; use absolute `http://` or `https://` links only, because root-relative paths are rejected.
+使用项目锁定版本的 Mermaid 所支持的图表类型和语法，并保持 `securityLevel: strict`。选择与内容结构相符的 Infographic 模板，并提供模板要求的数据。T8 支持指标、比率、差值、趋势、分布、排名和异常实体；链接只能使用完整的 `http://` 或 `https://` 地址，不支持以根目录开头的相对路径。
 
-### `excalidraw` — business relationship sketch
+### `excalidraw` — 业务关系示意图
 
-Answers: how do the entities relate, in a diagram rather than prose?
+用途：用图示而不是文字说明实体之间的关系。
 
 ```excalidraw
 {"sceneRef":"conversion_flow","title":"内容到支付的主链路","kicker":"业务关系图"}
 ```
 
-Use `sceneRef` when the scene is stored in the SQLite source, or paste an official scene object with `type: "excalidraw"` and an `elements` array. Image files inside a scene must be embedded `data:image` URLs so the export stays offline. The scene is exported to static SVG before the HTML is written.
+场景存放在 SQLite 数据源中时使用 `sceneRef`；也可以直接提供官方场景对象，并设置 `type: "excalidraw"` 和 `elements` 数组。场景中的图片必须使用内嵌的 `data:image` URL，保证导出文件可离线使用。写出 HTML 前，场景会先转换为静态 SVG。
 
-## Prepare and protect data
+## 准备和保护数据
 
-For reusable reports, declare one SQLite database in the Markdown frontmatter. Give each dataset source `table` or `tables` when using SQL, or a `view` name when reading a SQLite view; include optional column types and choose exactly one source: a workspace-relative `queryFile`, a named SQLite `view`, or an inline `query`. Use `.sql` sidecars for reusable or multi-line queries; keep only short one-off queries inline. Put bound values in `parameters`, not interpolated SQL strings. Excalidraw `sceneRef` entries follow the same source options and identify the JSON result column with `column` when needed. The DSH adapter resolves declared files inside the active session workspace, runs query sources read-only, materializes one consistent snapshot, then validates and renders it. Keep the Markdown, database, and any `.sql` files together in the project:
+可复用的报告应在 Markdown 文档头中声明一个 SQLite 数据库。使用 SQL 时，为每个数据集来源指定 `table` 或 `tables`；读取 SQLite 视图时指定 `view` 名称。可以声明列类型，但数据源必须且只能选择一种：相对于工作区的 `queryFile`、命名的 SQLite `view` 或内联 `query`。可复用或多行查询应放入 `.sql` 辅助文件，内联写法只保留给简短的一次性查询。绑定值放在 `parameters` 中，不要拼接进 SQL 字符串。Excalidraw 的 `sceneRef` 使用相同的数据源选项；需要时通过 `column` 指定存有 JSON 结果的列。DSH 适配器会在当前会话工作区中解析所声明的文件，以只读方式运行查询，物化一致的数据快照，然后执行校验和渲染。请将 Markdown、数据库和 `.sql` 文件放在同一项目中：
 
 ```yaml
 sqlite:
@@ -404,9 +404,9 @@ sqlite:
       column: scene_json
 ```
 
-To read a database view instead, declare `view: monthly_revenue_report` and omit `query`/`queryFile`. The view must already exist in the SQLite file. For a tiny one-off extraction, use `query: SELECT ...` directly. A source cannot combine these options.
+若要读取数据库视图，请声明 `view: monthly_revenue_report`，并省略 `query`/`queryFile`。该视图必须已存在于 SQLite 文件中。很短的一次性查询可以直接使用 `query: SELECT ...`。同一个数据源不能混用这些选项。
 
-The corresponding body references the data and scene without copying their contents:
+正文可以直接引用数据和场景，无需复制其内容：
 
 ````markdown
 ```chart
@@ -418,16 +418,16 @@ The corresponding body references the data and scene without copying their conte
 ```
 ````
 
-Choose a data transport based on whether the report must be reproducible:
+根据报告是否需要复现，选择合适的数据传递方式：
 
-- Use the DSH `path` argument to read an existing `.md` file. This avoids copying the whole Markdown through tool arguments. The HTML is written beside that Markdown with a content-hash filename; the result returns absolute source and HTML paths. Edit the source file and call the tool again to re-render.
-- Use the `markdown` argument for a new, unsaved, or very small one-off report. Provide exactly one of `markdown` and `path`.
-- Use inline `datasets` (or CSV data) only for small one-off snapshots or when another host already has a snapshot in memory. Inline dataset bytes are not persisted in the Markdown, trigger a portability warning in DSH, and share the 1 MB dataset limit.
-- Use Markdown frontmatter SQLite sources for reproducible reports, recurring updates, SQL joins/aggregation, or data that should not be copied into the prompt. Put reusable SQL in `.sql` sidecars or a database view. The exported HTML embeds one materialized snapshot; updating the database takes effect on the next render.
+- 使用 DSH 的 `path` 参数读取现有 `.md` 文件，避免通过工具参数重复传输整份 Markdown。HTML 会写在 Markdown 旁边，文件名包含内容哈希；工具会返回源文件和 HTML 的绝对路径。编辑源文件后再次调用工具即可重新渲染。
+- 新建、尚未保存或很短的一次性报告可使用 `markdown` 参数。`markdown` 和 `path` 必须且只能提供一个。
+- 只有在制作小型一次性快照，或其他宿主已有内存快照时，才内联提供 `datasets`（或 CSV 数据）。内联数据不会写入 Markdown，在 DSH 中会触发可移植性警告，并计入 1 MB 数据集总量限制。
+- 需要复现、定期更新、执行 SQL 联接或聚合，或不应复制到提示词中的数据，应使用 Markdown 文档头中的 SQLite 数据源。可复用 SQL 放入 `.sql` 辅助文件或数据库视图。导出的 HTML 会嵌入一次物化的数据快照；更新数据库后需重新渲染才能反映变化。
 
-In DSH, database and `.sql` paths are relative to the active session workspace, cannot escape it, and require the DSH filesystem service. Only one SQLite file is declared per report. Queries must start with `SELECT`, `WITH`, or `VALUES`; the database opens read-only, query parameters are bound separately, SQL files are limited to 100 KB, and results are capped at 5,000 rows per dataset. SQL code fences outside the `sqlite` frontmatter are still never executed. Frontmatter records each source table and query-file/view reference; the sidecar SQL file or SQLite view contains reusable query logic.
+在 DSH 中，数据库和 `.sql` 文件路径相对于当前会话工作区，不能越出工作区，并且需要 DSH 文件系统服务。每份报告只能声明一个 SQLite 文件。查询必须以 `SELECT`、`WITH` 或 `VALUES` 开头；数据库以只读方式打开，查询参数单独绑定，SQL 文件不得超过 100 KB，每个数据集最多返回 5,000 行。`sqlite` 文档头以外的 SQL 代码围栏也不会执行。文档头记录数据源表名和 query-file/view 引用；可复用查询逻辑存放在辅助 SQL 文件或 SQLite 视图中。
 
-Keep image files inside the active workspace and declare each workspace-relative path explicitly. Images are separate files, not SQLite blobs; the exported HTML embeds only declared image files as data URIs, so it remains offline and can be shared with the Markdown source and database:
+图片文件应保存在当前工作区，并明确声明每个工作区相对路径。图片是独立文件，不是 SQLite 二进制对象；导出的 HTML 只会把已声明的图片嵌入为 data URI，因此可以离线使用，也可与 Markdown 源文件和数据库一起分享：
 
 ```yaml
 assets:
@@ -436,23 +436,23 @@ assets:
     mediaType: image/png
 ```
 
-Reference the image in the body with `![Company mark](asset:company_mark)`. DSH resolves the path inside the session workspace and enforces the same containment and size limits as other local resources. Hosts that do not load frontmatter assets can provide equivalent `ReportDocument.assets` bytes directly.
+在正文中使用 `![公司标志](asset:company_mark)` 引用图片。DSH 会在会话工作区内解析路径，并对其实施与其他本地资源相同的目录范围和大小限制。不支持从文档头读取资源的宿主，可以直接通过 `ReportDocument.assets` 提供等价的图片字节。
 
-For an external host that does not implement Markdown SQLite loading, resolve the declared sources before calling the renderer and pass the resulting snapshots in `ReportDocument.datasets` and `ReportDocument.scenes`. In DSH, inline `datasets` and `assets` tool arguments are suitable only for one-off reports: the adapter saves the Markdown source, but these inline values are not stored in it and trigger a portability warning. CSV remains useful for one-off data; use the same dataset contract:
+不支持从 Markdown 读取 SQLite 的其他宿主，应在调用渲染器前解析已声明的数据源，并将快照放入 `ReportDocument.datasets` 和 `ReportDocument.scenes`。在 DSH 中，内联 `datasets` 和 `assets` 工具参数只适合一次性报告：适配器会保存 Markdown 源文件，但不会把这些内联值写入其中，因此会发出可移植性警告。CSV 仍适合一次性数据，使用相同的数据集结构：
 
-- Prefer SQLite for recurring data that needs incremental updates, history, indexes, joins, or reproducible queries.
-- Prefer CSV tool inputs for one-off uploads, handoffs, or small static datasets. Declare column types when numeric or boolean values need predictable parsing.
-- The rendered HTML embeds a materialized snapshot, not a live database connection. Updating source data requires loading it and rendering again.
-- Treat frontmatter database/query-file paths and SQL as untrusted document input: enforce workspace containment, read-only access, query limits, and bound parameters in the host. Keep credentials and privileged local paths in trusted host configuration. SQL code fences are display-only.
-- The current renderer accepts at most 1 MB of declared datasets and displays up to 5,000 table rows. Aggregate or filter larger inputs before rendering and describe omitted scope.
+- 需要增量更新、历史记录、索引、联接或可复现查询的周期性数据优先使用 SQLite。
+- 一次性上传、交接或小型静态数据优先使用 CSV 工具参数。若需要稳定解析数值或布尔值，请声明列类型。
+- 渲染后的 HTML 嵌入的是物化快照，不是实时数据库连接。源数据更新后，必须重新读取数据并再次渲染。
+- 将文档头中的数据库路径、查询文件路径和 SQL 视为不可信文档输入：宿主必须限制工作区范围、只读访问和查询规模，并绑定参数。凭据和有权限的本地路径应放在可信宿主配置中。SQL 代码围栏仅用于展示。
+- 当前渲染器最多接受 1 MB 已声明数据集，最多显示 5,000 行表格数据。较大的输入应在渲染前聚合或筛选，并说明省略的数据范围。
 
-`drender_validate` returns per-dataset materialized row and UTF-8 byte counts. It warns when a dataset reaches 4,000 rows or the aggregate dataset snapshot reaches 800,000 bytes; the hard limits are 5,000 SQLite rows per query and 1,000,000 bytes for datasets. Validation reports up to 500 diagnostics. It collects independent issues and may skip dependent checks after a malformed component (for example, a chart with invalid JSON cannot also be checked for field references).
+`drender_validate` 会返回每个数据集物化后的行数和 UTF-8 字节数。数据集达到 4,000 行，或数据集快照总量达到 800,000 字节时会发出警告；硬性上限为每条 SQLite 查询 5,000 行、数据集总量 1,000,000 字节。校验最多返回 500 条诊断。它会收集相互独立的问题，但组件格式错误时可能跳过依赖该组件的检查（例如，图表 JSON 无效时就无法检查字段引用）。
 
-The renderer rejects raw HTML, restricts links to `https:`, `http:`, `mailto:`, and in-document anchors, and embeds only declared raster images. It does not execute user JavaScript or SQL. Exported HTML includes its CSS and only the required chart, table, Mermaid, T8, and Infographic runtimes; Excalidraw scenes are exported to SVG before delivery. For planning distribution size, ECharts contributes about 1.1 MB when a chart is present, and Tabulator adds about 0.5 MB when a data table is present. A report containing both typically starts around 1.6–1.7 MB before its data and other content. Runtimes stay embedded so the document works offline; hiding chart controls does not materially change this runtime-size floor. Anyone receiving the HTML can inspect embedded data. Do not put secrets in a report.
+渲染器会拒绝原始 HTML，只允许 `https:`、`http:`、`mailto:` 和文档内锚点链接，并且只嵌入已声明的栅格图片。它不会执行用户 JavaScript 或 SQL。导出的 HTML 包含 CSS 和报告实际需要的图表、表格、Mermaid、T8、Infographic 运行时；交付前，Excalidraw 场景会转换为 SVG。估算文件大小时，可按包含图表时 ECharts 约 1.1 MB、包含数据表时 Tabulator 约 0.5 MB 计算。两者都存在的报告，在加入数据和其他内容前通常约为 1.6–1.7 MB。运行时会内嵌，以保证文档离线可用；隐藏图表控件不会明显降低这个大小下限。收到 HTML 的人都能检查其中嵌入的数据，请勿在报告中放入秘密信息。
 
-## Render workflow
+## 渲染流程
 
-1. Prepare a `ReportDocument` containing `markdown` and, when needed, declared `datasets` and inline `assets`; DSH can load SQLite and image file sources directly from the Markdown frontmatter. For an existing workspace Markdown file, pass `path` to DSH instead of resending the document text.
-2. Use the host's md-report validation tool when available. Fix every error diagnostic before rendering. Unknown component keys, unresolved metric tokens, and missing required fields are errors, not warnings.
-3. Use the host's render tool when available. Otherwise use `validateReport(document)` and `renderReport(document, options)` from `@mdreport/renderer-core`.
-4. In DSH, `drender_render` returns dataset row/byte counts and a component summary, plus the absolute HTML and source paths. With `path` input it writes content-addressed HTML beside the source Markdown. With inline Markdown it saves a call-scoped source copy in the session workspace. Preserve the Markdown with the SQLite database, referenced `.sql` files, and image files at the declared workspace-relative paths; together they are the reproducible source. The exported HTML is only a viewable snapshot. If another host cannot save the source files, return or save the Markdown and explain which declared sidecar files must accompany it.
+1. 准备包含 `markdown` 的 `ReportDocument`，必要时再提供声明的数据集 `datasets` 和内联图片 `assets`。DSH 可以直接从 Markdown 文档头读取 SQLite 和图片文件。处理工作区中已有的 Markdown 文件时，给 DSH 传入 `path`，不要重新发送整段文本。
+2. 宿主提供 md-report 校验工具时优先使用。渲染前修复所有错误诊断。未知组件字段、无法解析的指标 token 和缺少必填字段都属于错误，不是警告。
+3. 宿主提供渲染工具时使用该工具。否则，在源码工作区中调用 `validateReport(document)` 和 `renderReport(document, options)`。
+4. 在 DSH 中，`drender_render` 会返回数据集行数与字节数、组件摘要，以及 HTML 和源文件的绝对路径。传入 `path` 时，它会在源 Markdown 旁写出文件名含内容哈希的 HTML；传入内联 Markdown 时，它会在当前会话工作区保存本次调用对应的源文件副本。Markdown、SQLite 数据库、引用的 `.sql` 文件和声明路径下的图片共同构成可复现源文件，应一并保留。导出的 HTML 只是可查看的快照。如果其他宿主无法保存源文件，请返回或保存 Markdown，并说明必须与它一起提供的辅助文件。

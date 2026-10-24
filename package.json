@@ -1,6 +1,6 @@
 {
   "name": "drender",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.21.0",
@@ -8,13 +8,14 @@
     "node": ">=22.13.0"
   },
   "scripts": {
-    "build": "tsc -b && tsc -p plugins/hosts/dsh/tsconfig.client.json && node plugins/hosts/dsh/build-client.mjs && node scripts/package-dsh-skill.mjs",
+    "build": "tsc -b && tsc -p plugins/hosts/dsh/tsconfig.client.json && node plugins/hosts/dsh/build-main.mjs && node plugins/hosts/dsh/build-client.mjs && node scripts/package-dsh-skill.mjs",
     "clean": "tsc -b --clean"
   },
   "devDependencies": {
     "@types/markdown-it": "^14.1.2",
     "@types/markdown-it-container": "^4.0.1",
     "@types/node": "^24.0.0",
+    "@types/react": "~18.3.1",
     "typescript": "^5.9.3"
   },
   "description": "An open-source renderer for the md-report/1 format: Markdown plus declared datasets becomes one offline, interactive HTML report or dashboard.",

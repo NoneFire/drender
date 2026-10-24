@@ -2,16 +2,13 @@
 
 **drender** 将 Markdown、声明式数据源和图表组件渲染成一份可离线查看的交互式 HTML 报告或仪表盘。文档格式为 `md-report/1`，数据在渲染前由宿主读取并固化到 HTML 中。
 
-## 工作区包
+## npm 安装包
 
 | npm 包 | 用途 |
 | --- | --- |
-| `@nonefire/renderer-core` | Markdown 校验与渲染、自包含 HTML、ECharts、Mermaid、AntV Infographic、T8、Excalidraw 和 Tabulator。 |
-| `@nonefire/viewer-theme` | 报告主题、全屏深色仪表盘主题和打印样式。 |
-| `@nonefire/data-sources` | CSV 与只读 SQLite 数据源适配器。 |
-| `@nonefire/dsh-drender-plugin` | DSH 的 `drender_validate`、`drender_render` 工具及 `drender-report` Skill。 |
+| `@nonefire/dsh-drender-plugin` | DSH 的 `drender_validate`、`drender_render` 工具及随插件注册的 `drender-report` Skill；包含 renderer、数据源和主题模块。 |
 
-本仓库是 pnpm workspace；根目录包仅用于开发和构建，不单独发布。所有工作区包的版本与 GitHub Release 对齐。
+本仓库是 pnpm workspace；根目录以及 `renderer-core`、`data-sources`、`viewer-theme` 都是内部构建模块，不单独发布。面向 DSH 用户只维护并发布插件包；插件安装时会自动安装所需的第三方 npm 依赖。
 
 ## 功能
 
@@ -73,7 +70,7 @@ sqlite:
       queryFile: queries/monthly-revenue.sql
 ```
 
-也可以通过 `@nonefire/data-sources` 从 CSV 或 SQLite 加载数据，然后把生成的快照交给 renderer。查询在宿主侧以只读方式执行；浏览器只使用已物化的快照，不会访问数据库。
+插件内部会从 CSV 或 SQLite 加载数据并把生成的快照交给 renderer。查询在宿主侧以只读方式执行；浏览器只使用已物化的快照，不会访问数据库。
 
 每份报告的数据快照总量上限为 1 MB，每个数据集最多 5,000 行，SQL 文件最多 100 KB。图片必须在 frontmatter 中声明，且路径必须位于当前工作区。
 

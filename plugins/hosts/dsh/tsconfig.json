@@ -2,8 +2,15 @@
   "extends": "../../../tsconfig.base.json",
   "compilerOptions": {
     "rootDir": "src",
-    "outDir": "lib"
+    "outDir": "lib",
+    "paths": {
+      "@nonefire/renderer-core": ["../../../packages/renderer-core/dist/index.d.ts"],
+      "@nonefire/data-sources": ["../../../packages/data-sources/dist/index.d.ts"]
+    }
   },
   "include": ["src/index.ts"],
-  "references": [{ "path": "../../../packages/renderer-core" }]
+  "references": [
+    { "path": "../../../packages/renderer-core" },
+    { "path": "../../../packages/data-sources" }
+  ]
 }

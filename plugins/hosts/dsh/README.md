@@ -21,7 +21,7 @@
 dsh plugin --profile web add @nonefire/dsh-drender-plugin
 ```
 
-插件依赖 `@nonefire/renderer-core`、`@nonefire/data-sources` 和 `@nonefire/viewer-theme`。在源码开发环境中，将 `cordis.patch.yml` 的插件条目加入 profile 配置；稳定 ID 为 `md-report-dsh`，名称必须与包名及 `src/index.ts` 导出一致。
+Renderer、CSV/SQLite 数据源和主题代码均已打进这个插件包，不需要单独安装 drender 的其他 npm 包。图表与 Markdown 解析器等第三方运行时由 npm 自动安装；DSH 自身 API 由宿主提供。在源码开发环境中，将 `cordis.patch.yml` 的插件条目加入 profile 配置；稳定 ID 为 `md-report-dsh`，名称必须与包名及 `src/index.ts` 导出一致。
 
 ## 工具
 

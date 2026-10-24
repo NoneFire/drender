@@ -1,28 +1,25 @@
 {
   "name": "@nonefire/dsh-drender-plugin",
-  "version": "0.1.1",
-  "description": "DeepSeek Harness tools and Skill for validating and rendering md-report documents.",
+  "version": "0.1.2",
+  "description": "为 DeepSeek Harness 提供 md-report/1 校验、渲染工具及 drender-report Skill。",
   "type": "module",
   "engines": {
     "node": ">=22.13.0"
   },
   "main": "lib/index.js",
-  "types": "lib/index.d.ts",
   "exports": {
     ".": {
-      "types": "./lib/index.d.ts",
       "import": "./lib/index.js"
     },
     "./client": "./lib/client.js"
   },
   "files": [
-    "lib",
+    "lib/index.js",
+    "lib/client.js",
+    "lib/skills",
     "cordis.patch.yml",
     "README.md"
   ],
-  "scripts": {
-    "build": "tsc -b && tsc -p tsconfig.client.json && node build-client.mjs && node ../../../scripts/package-dsh-skill.mjs"
-  },
   "peerDependencies": {
     "@deepseek-ai/cordis": "~4.0.5-alpha.2",
     "@deepseek-ai/dsh-attachment": ">=0.2.0-rc.1",
@@ -33,6 +30,26 @@
     "@deepseek-ai/dsh-skill": ">=0.2.0-rc.1",
     "@deepseek-ai/dsh-tools": ">=0.2.0-rc.1",
     "react": "^18.2.0"
+  },
+  "peerDependenciesMeta": {
+    "@deepseek-ai/dsh-attachment": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@antv/infographic": "0.2.20",
+    "@antv/t8": "0.3.1",
+    "@excalidraw/utils": "0.1.5",
+    "echarts": "6.1.0",
+    "linkedom": "0.18.13",
+    "markdown-it": "^14.1.0",
+    "markdown-it-anchor": "9.2.0",
+    "markdown-it-container": "^4.0.0",
+    "markdown-it-toc-done-right": "4.2.0",
+    "mermaid": "12.2.0",
+    "sql-formatter": "^15.9.0",
+    "tabulator-tables": "6.5.0",
+    "yaml": "^2.8.1"
   },
   "devDependencies": {
     "@deepseek-ai/cordis": "~4.0.4",
@@ -46,10 +63,6 @@
     "@types/react": "~18.3.1",
     "esbuild": "^0.25.0",
     "react": "^18.2.0"
-  },
-  "dependencies": {
-    "@nonefire/data-sources": "workspace:^",
-    "@nonefire/renderer-core": "workspace:^"
   },
   "dsh": {
     "bundle": {
