@@ -4,7 +4,7 @@
 
 drender 为 Agent 定义 `md-report/1` 报告格式和渲染工具：Agent 用一份 Markdown 源文件组织指标定义、数据来源、图表和正文，渲染器再生成可交互、可离线打开的 HTML。
 
-[查看组件图鉴 HTML](examples/template-gallery.html) · [查看经营仪表盘 HTML](examples/dashboard.html) · [查看 npm 插件](https://www.npmjs.com/package/@nonefire/dsh-drender-plugin)
+[下载组件图鉴 HTML](examples/template-gallery.html) · [下载经营仪表盘 HTML](examples/dashboard.html) · [查看 npm 插件](https://www.npmjs.com/package/@nonefire/dsh-drender-plugin)
 
 ## 要解决的问题
 
@@ -38,7 +38,7 @@ SQLite / CSV + md-report/1 Markdown
 
 ### 经营仪表盘
 
-[打开仪表盘 HTML 文件](examples/dashboard.html)
+[下载仪表盘 HTML 文件](examples/dashboard.html)
 
 ![drender 经营仪表盘示例：KPI 卡片、组合图、渠道占比图、区域排行和订单表](examples/assets/dashboard-preview.png)
 
@@ -46,7 +46,7 @@ SQLite / CSV + md-report/1 Markdown
 
 组件图鉴覆盖指标声明与 token、KPI、统计图、排行榜、透视表、数据表、发现摘要、数据口径、数据质量、SQL、流程图、信息图、叙述文本、关系图，以及栅格、并排分栏和折叠详情。
 
-[打开组件图鉴 HTML 文件](examples/template-gallery.html) · [查看图鉴 Markdown 源文件](examples/template-gallery.md)
+[下载组件图鉴 HTML 文件](examples/template-gallery.html) · [查看图鉴 Markdown 源文件](examples/template-gallery.md)
 
 ![md-report/1 组件图鉴示例，显示自动目录、指标 token、组件说明和示例内容](examples/assets/template-gallery-preview.png)
 

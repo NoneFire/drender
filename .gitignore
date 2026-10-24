@@ -7,6 +7,8 @@ examples/.cache/
 
 # Generated example artifacts: `node examples/render-examples.mjs` recreates these.
 examples/*.html
+!examples/dashboard.html
+!examples/template-gallery.html
 examples/data/
 
 # Review scratch data stays local; the authored scripts and write-ups are tracked.

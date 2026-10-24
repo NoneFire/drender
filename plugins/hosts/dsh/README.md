@@ -10,8 +10,8 @@
 
 组件图鉴展示报告组件、指标 token、分栏布局和并排图表的实际渲染效果。可直接查看图鉴 HTML、Markdown 源文件和经营仪表盘示例：
 
-- [组件图鉴 HTML](https://github.com/NoneFire/drender/blob/main/examples/template-gallery.html) · [图鉴 Markdown 源文件](https://github.com/NoneFire/drender/blob/main/examples/template-gallery.md)
-- [经营仪表盘 HTML](https://github.com/NoneFire/drender/blob/main/examples/dashboard.html)
+- [下载组件图鉴 HTML](https://github.com/NoneFire/drender/blob/main/examples/template-gallery.html) · [图鉴 Markdown 源文件](https://github.com/NoneFire/drender/blob/main/examples/template-gallery.md)
+- [下载经营仪表盘 HTML](https://github.com/NoneFire/drender/blob/main/examples/dashboard.html)
 
 ![drender 组件图鉴预览，展示报告布局、指标 token 和多种图表组件](https://raw.githubusercontent.com/NoneFire/drender/main/examples/assets/template-gallery-preview.png)
 
