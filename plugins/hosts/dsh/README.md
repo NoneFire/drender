@@ -1,4 +1,4 @@
-# @nonefire/dsh-drender-plugin
+# @tita-agent/dsh-drender-plugin
 
 **让 DSH Agent 把数据和分析要求转成可校验、可复核、可离线分享的标准化报告。**
 
@@ -47,7 +47,7 @@ drender_validate → drender_render
 将插件安装到 DSH Web profile：
 
 ```sh
-dsh plugin --profile web add @nonefire/dsh-drender-plugin
+dsh plugin --profile web add @tita-agent/dsh-drender-plugin
 ```
 
 插件包内已包含 renderer、数据源和主题模块。用户只需安装这个 DSH 插件包；ECharts、Mermaid、AntV Infographic、AntV T8、Tabulator 等第三方运行时依赖由 npm 自动安装。

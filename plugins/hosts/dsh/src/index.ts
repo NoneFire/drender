@@ -33,7 +33,7 @@ export { loadMarkdownSqliteSources, loadSqliteDataset, parseCsvDataset, readCsvD
 
 const drenderReportSkill = readFileSync(new URL('./skills/drender-report/SKILL.md', import.meta.url), 'utf8');
 
-export const name = '@nonefire/dsh-drender-plugin';
+export const name = '@tita-agent/dsh-drender-plugin';
 export const inject = ['tools', 'skills', 'attachments'] as const;
 
 interface ToolInput {

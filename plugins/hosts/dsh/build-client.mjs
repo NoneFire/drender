@@ -2,7 +2,7 @@ import { build } from 'esbuild';
 import { dirname, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const id = '@nonefire/dsh-drender-plugin';
+const id = '@tita-agent/dsh-drender-plugin';
 const root = dirname(fileURLToPath(import.meta.url));
 
 await build({

@@ -4,7 +4,7 @@
 
 drender 为 Agent 定义 `md-report/1` 报告格式和渲染工具：Agent 用一份 Markdown 源文件组织指标定义、数据来源、图表和正文，渲染器再生成可交互、可离线打开的 HTML。
 
-[下载组件图鉴 HTML](examples/template-gallery.html) · [下载经营仪表盘 HTML](examples/dashboard.html) · [查看 npm 插件](https://www.npmjs.com/package/@nonefire/dsh-drender-plugin)
+[下载组件图鉴 HTML](examples/template-gallery.html) · [下载经营仪表盘 HTML](examples/dashboard.html) · [查看 npm 插件](https://www.npmjs.com/package/@tita-agent/dsh-drender-plugin)
 
 ## 要解决的问题
 
@@ -62,7 +62,7 @@ SQLite / CSV + md-report/1 Markdown
 ## 安装 DSH 插件
 
 ```sh
-dsh plugin --profile web add @nonefire/dsh-drender-plugin
+dsh plugin --profile web add @tita-agent/dsh-drender-plugin
 ```
 
 插件会安装所需的第三方运行时依赖，并注册以下工具：
@@ -148,7 +148,7 @@ sqlite:
 
 ## npm 包
 
-面向 DSH 用户只发布和维护 `@nonefire/dsh-drender-plugin`。根目录以及 `renderer-core`、`data-sources`、`viewer-theme` 是内部构建模块，不单独发布；插件包内含渲染器、数据源、主题和 Skill。
+面向 DSH 用户只发布和维护 `@tita-agent/dsh-drender-plugin`。根目录以及 `renderer-core`、`data-sources`、`viewer-theme` 是内部构建模块，不单独发布；插件包内含渲染器、数据源、主题和 Skill。
 
 ## 许可证
 
