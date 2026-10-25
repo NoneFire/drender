@@ -1,5 +1,5 @@
 {
-  "name": "@nonefire/data-sources",
+  "name": "@tita-agent/data-sources",
   "version": "0.1.1",
   "private": true,
   "description": "Host-side CSV and read-only SQLite adapters that materialize md-report datasets.",
@@ -22,7 +22,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
-    "@nonefire/renderer-core": "workspace:^"
+    "@tita-agent/renderer-core": "workspace:^"
   },
   "license": "MIT",
   "repository": {

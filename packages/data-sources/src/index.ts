@@ -1,7 +1,7 @@
 import { DatabaseSync } from 'node:sqlite';
 import { readFile } from 'node:fs/promises';
 import type { DatabaseSync as DatabaseSyncType } from 'node:sqlite';
-import type { ReportDataset, ReportScene, SqliteDatasetSource, SqliteSceneSource, SqliteSourceConfig } from '@nonefire/renderer-core';
+import type { ReportDataset, ReportScene, SqliteDatasetSource, SqliteSceneSource, SqliteSourceConfig } from '@tita-agent/renderer-core';
 
 export interface DatasetColumn {
   name: string;

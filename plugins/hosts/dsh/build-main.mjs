@@ -18,8 +18,8 @@ await build({
   format: 'esm',
   target: 'node22',
   alias: {
-    '@nonefire/renderer-core': resolve(root, '../../../packages/renderer-core/dist/index.js'),
-    '@nonefire/data-sources': resolve(root, '../../../packages/data-sources/dist/index.js'),
+    '@tita-agent/renderer-core': resolve(root, '../../../packages/renderer-core/dist/index.js'),
+    '@tita-agent/data-sources': resolve(root, '../../../packages/data-sources/dist/index.js'),
   },
   external,
   sourcemap: false,

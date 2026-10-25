@@ -1,5 +1,5 @@
 {
-  "name": "@nonefire/renderer-core",
+  "name": "@tita-agent/renderer-core",
   "version": "0.1.1",
   "private": true,
   "type": "module",
@@ -21,7 +21,7 @@
     "@antv/infographic": "0.2.20",
     "@antv/t8": "0.3.1",
     "@excalidraw/utils": "0.1.5",
-    "@nonefire/viewer-theme": "workspace:^",
+    "@tita-agent/viewer-theme": "workspace:^",
     "echarts": "6.1.0",
     "linkedom": "0.18.13",
     "markdown-it": "^14.1.0",

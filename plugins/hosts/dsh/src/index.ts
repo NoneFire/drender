@@ -26,10 +26,10 @@ import {
   type SqliteSourceConfig,
   extractAssetSourceConfig,
   extractSqliteSourceConfig,
-} from '@nonefire/renderer-core';
-import { loadMarkdownSqliteSources } from '@nonefire/data-sources';
+} from '@tita-agent/renderer-core';
+import { loadMarkdownSqliteSources } from '@tita-agent/data-sources';
 
-export { loadMarkdownSqliteSources, loadSqliteDataset, parseCsvDataset, readCsvDataset } from '@nonefire/data-sources';
+export { loadMarkdownSqliteSources, loadSqliteDataset, parseCsvDataset, readCsvDataset } from '@tita-agent/data-sources';
 
 const drenderReportSkill = readFileSync(new URL('./skills/drender-report/SKILL.md', import.meta.url), 'utf8');
 

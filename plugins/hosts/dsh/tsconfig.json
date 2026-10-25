@@ -4,8 +4,8 @@
     "rootDir": "src",
     "outDir": "lib",
     "paths": {
-      "@nonefire/renderer-core": ["../../../packages/renderer-core/dist/index.d.ts"],
-      "@nonefire/data-sources": ["../../../packages/data-sources/dist/index.d.ts"]
+      "@tita-agent/renderer-core": ["../../../packages/renderer-core/dist/index.d.ts"],
+      "@tita-agent/data-sources": ["../../../packages/data-sources/dist/index.d.ts"]
     }
   },
   "include": ["src/index.ts"],

@@ -8,7 +8,7 @@ import container from 'markdown-it-container';
 import markdownItTocDoneRight from 'markdown-it-toc-done-right';
 import { DOMParser, parseHTML } from 'linkedom';
 import { isAlias, parseDocument } from 'yaml';
-import { viewerThemeCss } from '@nonefire/viewer-theme';
+import { viewerThemeCss } from '@tita-agent/viewer-theme';
 import {
   CHART_KINDS,
   COMPARISON_KINDS,
