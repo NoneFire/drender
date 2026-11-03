@@ -32,7 +32,7 @@ description: 根据给定数据规划并创建 md-report/1 仪表盘和分析报
 
 每个业务数字只在文档头的 `metrics` 中声明一次，再从正文、KPI 卡片、图表和表格中引用。这样同一指标不会出现多个数值，读者也能同时看到指标定义。
 
-正文至少有两个 H2–H4 标题时，报告会自动生成可点击目录；仪表盘不显示目录。默认 `toc: rail` 会在内容左上角显示三条短横线，鼠标移入或键盘聚焦时展开为目录浮层，浮层不占正文宽度，点击可固定；需要常驻面板时用 `toc: open`，需要初始折叠的卡片时用 `toc: collapsed`，需要随宽度自动展开时用 `toc: auto`。使用有描述性的分节标题，方便读者浏览长报告并跳转。
+正文至少有两个 H2–H4 标题时，报告会自动生成可点击目录；仪表盘不显示目录。默认 `toc: rail` 会在内容左上角显示三条短横线，滚动时固定在左上角悬浮，鼠标移入或键盘聚焦时展开为目录浮层，浮层不占正文宽度，点击可固定；需要常驻面板时用 `toc: open`，需要初始折叠的卡片时用 `toc: collapsed`，需要随宽度自动展开时用 `toc: auto`。使用有描述性的分节标题，方便读者浏览长报告并跳转。
 
 对支持的内容使用内置开源渲染器，不要用自定义 HTML 重造语法或视觉效果：`markdown-it-anchor` 和 `markdown-it-toc-done-right` 生成报告标题链接与目录；AntV T8 渲染 `antv-t8` 叙述；AntV G2 默认渲染基础统计图，Apache ECharts 承接 G2 未覆盖的复杂图表；Tabulator 渲染数据表。Markdown 组件必须使用声明式写法，并符合渲染器支持的输入结构。
 
@@ -185,7 +185,7 @@ metrics:
 
 `dataRef` 必填，且 `x` 和 `y` 必须是数据集中的字段。使用 `metricRef` 时，`y` 和 `unit` 会从指标定义读取，不要再声明这两个字段。多系列 `line`/`area` 图表的 `series` 是字段名；`combo` 图表的 `series` 是系列对象数组。`axisFormat` 接受 `format`、`decimals`、`compact`、`currency` 和 `scale`，用于覆盖数值轴格式。
 
-`engine` 可选 `g2`（默认）或 `echarts`。`line`、`bar`、`column`、`area`、`pie`、`scatter` 由 AntV G2 渲染；漏斗、组合、瀑布、K 线等 G2 未覆盖的类型会自动回退到 ECharts，并在图表卡右上角标注实际引擎。图表卡固定提供“图表 / 数据 / SQL”三个视图：数据视图展示绘图所用数据集的行，SQL 视图展示产生该快照的查询；数据集来自 CSV 或内联快照时，SQL 视图会说明没有查询。这样结论、证据和口径可以放在同一个组件里。
+`engine` 可选 `g2`（默认）或 `echarts`。`line`、`bar`、`column`、`area`、`pie`、`scatter` 由 AntV G2 渲染；漏斗、组合、瀑布、K 线等 G2 未覆盖的类型会自动回退到 ECharts，并在图表卡右上角标注实际引擎。图表卡固定提供“图表 / 数据 / SQL”三个视图：数据视图展示绘图所用数据集的行，SQL 视图展示数据集的 `sourceSql`（从源头取数到表格的查询）；数据集没有声明 `sourceSql` 时，SQL 视图会提示补充，而不会用本地 SQLite 的物化查询冒充源端 SQL。这样结论、证据和口径可以放在同一个组件里。
 
 | 类型 | 必填字段 | 说明 |
 | --- | --- | --- |
@@ -261,7 +261,7 @@ metrics:
 | `frozen` | 布尔值 | 滚动时固定显示该列。 |
 | `sorter` | 字符串 | Tabulator 排序器名称；样本为数值时默认 `number`，否则默认 `string`。 |
 
-最多显示 5,000 行。
+最多显示 5,000 行。数据表卡同样提供“数据 / SQL”两个视图；SQL 视图读取数据集的 `sourceSql`，没有声明时提示补充。
 
 ### `ranking` — 排序列表
 
@@ -391,6 +391,12 @@ sqlite:
     monthly_revenue:
       table: monthly_revenue
       queryFile: queries/monthly-revenue.sql
+      sourceSql: |
+        SELECT month, region, SUM(revenue) AS revenue
+        FROM dwd.monthly_orders
+        WHERE month >= '2026-01'
+        GROUP BY month, region
+      sourceSqlDialect: duckdb
       columns:
         - name: month
           type: string
@@ -405,6 +411,8 @@ sqlite:
       queryFile: queries/process-flow-scene.sql
       column: scene_json
 ```
+
+`query`、`queryFile` 和 `view` 只负责在当前工作区的 SQLite 快照上物化数据，不会出现在图表的 SQL 视图中。要让读者看到从源头取数的查询，请在数据集上声明 `sourceSql`（以及可选的 `sourceSqlDialect`）；它只用于展示和格式化，不执行。图表和数据表的 SQL 视图都读取这个字段；没有声明时提示补充，而不是展示本地快照查询。
 
 若要读取数据库视图，请声明 `view: monthly_revenue_report`，并省略 `query`/`queryFile`。该视图必须已存在于 SQLite 文件中。很短的一次性查询可以直接使用 `query: SELECT ...`。同一个数据源不能混用这些选项。
 

@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tmslrrTfhOMxmdwhaUAU0zbSIsvZ3rDlp8FL1qoND9A=' 'sha256-16WDcSPz7rNuTQhZPY6IIUQSBa+uBpVBw+jgL1uCigA=' 'sha256-Ma6rBra3jhAHU6dOT2vJ6Hw4qSa0cmlN7oIPEakV2Vc=' 'sha256-z1DtiGnzqgR6tZ/eweV+B0EYUxWOVOhXMZgWOrDH6dg=' 'sha256-hj6YiyI/Kw6/rvPQ3M0rqelaXv00dgcjo105NLeopxs=' 'sha256-sEbed14BZ2tDqqOuXL1quRMg+ZY8dh91bDyKCmEJh4M=' 'sha256-J9/hn0SSXPOUdDGdYWvpN4xGyG8+zxbOTlnCVCxeMMI='; img-src data: blob:; style-src 'unsafe-inline'; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'sha256-tmslrrTfhOMxmdwhaUAU0zbSIsvZ3rDlp8FL1qoND9A=' 'sha256-16WDcSPz7rNuTQhZPY6IIUQSBa+uBpVBw+jgL1uCigA=' 'sha256-Ma6rBra3jhAHU6dOT2vJ6Hw4qSa0cmlN7oIPEakV2Vc=' 'sha256-z1DtiGnzqgR6tZ/eweV+B0EYUxWOVOhXMZgWOrDH6dg=' 'sha256-qrjDFjbpFpXkUqjEd/59Go0OI/TCvrZyTiIEG2quWyw=' 'sha256-sEbed14BZ2tDqqOuXL1quRMg+ZY8dh91bDyKCmEJh4M=' 'sha256-5DF0EURzKf1Np53kXsbKA9L7454OFTge3Hs2XFvEoKY='; img-src data: blob:; style-src 'unsafe-inline'; font-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'">
   <meta name="color-scheme" content="light dark">
   <title>2026 年 10 月经营总览</title>
   <style>
@@ -118,6 +118,7 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--mdr-accent); o
 /* --- table of contents: top-left grip ----------------------------------- */
 /* No grid column: the grip and its panel float above the reading surface, so
    the default state never takes width away from the report body. */
+.mdr-toc-dock { position: sticky; top: 12px; z-index: 40; height: 0; }
 .mdr-report-layout--rail { position: relative; display: block; }
 /* Keep the collapsed grip inside the card's top padding at every width. */
 .mdr-report-layout--rail > .mdr-content { padding-top: max(clamp(24px, 5vw, 60px), 56px); }
@@ -286,8 +287,8 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
 .mdr-content .mdr-mermaid-host, .mdr-content .mdr-excalidraw-host { overflow-x: auto; }
 .mdr-content .mdr-echart { width: 100%; height: 250px; min-height: 180px; }
 
-/* --- chart tabs: picture, rows, and query in one card ------------------- */
-.mdr-content .mdr-chart-toolbar {
+/* --- view tabs: picture/rows/query for charts, rows/query for tables ----- */
+.mdr-content .mdr-view-toolbar {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -295,8 +296,8 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
   padding-bottom: 6px;
   border-bottom: 1px solid var(--mdr-line);
 }
-.mdr-content .mdr-chart-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
-.mdr-content .mdr-chart-tab {
+.mdr-content .mdr-view-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.mdr-content .mdr-view-tab {
   padding: 5px 10px;
   border: 0;
   border-radius: 7px;
@@ -308,10 +309,10 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
   font-weight: 650;
   line-height: 1.4;
 }
-.mdr-content .mdr-chart-tab:hover { background: var(--mdr-surface-muted); color: var(--mdr-ink); }
-.mdr-content .mdr-chart-tab[aria-selected="true"] { background: var(--mdr-accent-soft); color: var(--mdr-accent); font-weight: 750; }
-.mdr-content .mdr-chart-tab:focus-visible { outline: 3px solid var(--mdr-accent); outline-offset: 1px; }
-.mdr-content .mdr-chart-engine {
+.mdr-content .mdr-view-tab:hover { background: var(--mdr-surface-muted); color: var(--mdr-ink); }
+.mdr-content .mdr-view-tab[aria-selected="true"] { background: var(--mdr-accent-soft); color: var(--mdr-accent); font-weight: 750; }
+.mdr-content .mdr-view-tab:focus-visible { outline: 3px solid var(--mdr-accent); outline-offset: 1px; }
+.mdr-content .mdr-view-badge {
   margin-left: auto;
   padding: 2px 8px;
   border: 1px solid var(--mdr-line);
@@ -322,8 +323,8 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
   letter-spacing: .04em;
   white-space: nowrap;
 }
-.mdr-content .mdr-chart-panel { min-width: 0; }
-.mdr-content .mdr-chart-panel[hidden] { display: none !important; }
+.mdr-content .mdr-view-panel { min-width: 0; }
+.mdr-content .mdr-view-panel[hidden] { display: none !important; }
 .mdr-content .mdr-chart-canvas { width: 100%; height: 250px; min-height: 180px; }
 .mdr-content .mdr-chart-canvas[data-kind="pie"] { height: 300px; }
 .mdr-content .mdr-chart-table-wrap {
@@ -351,13 +352,13 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
 }
 .mdr-content .mdr-chart-data-table tr:nth-child(even) td { background: transparent; }
 .mdr-content .mdr-chart-data-table tr:last-child td { border-bottom: 0; }
-.mdr-content .mdr-chart-sql {
+.mdr-content .mdr-source-sql {
   overflow: hidden;
   border: 1px solid var(--mdr-line);
   border-radius: 8px;
   background: var(--mdr-code-bg);
 }
-.mdr-content .mdr-chart-sql-head {
+.mdr-content .mdr-source-sql-head {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -366,7 +367,7 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
   color: #a9bfce;
   font-size: var(--mdr-text-aux);
 }
-.mdr-content .mdr-chart-sql-dialect {
+.mdr-content .mdr-source-sql-dialect {
   flex: 0 0 auto;
   padding: 1px 7px;
   border: 1px solid rgb(255 255 255 / 18%);
@@ -377,8 +378,8 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
   letter-spacing: .04em;
   text-transform: uppercase;
 }
-.mdr-content .mdr-chart-sql-source { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mdr-content .mdr-chart-sql-copy {
+.mdr-content .mdr-source-sql-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mdr-content .mdr-source-sql-copy {
   flex: 0 0 auto;
   margin-left: auto;
   padding: 3px 8px;
@@ -391,16 +392,16 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
   font-size: var(--mdr-text-micro);
   font-weight: 650;
 }
-.mdr-content .mdr-chart-sql-copy:hover { border-color: #8fd8ca; color: #8fd8ca; }
-.mdr-content .mdr-chart-sql-copy:focus-visible { outline: 3px solid #8fd8ca; outline-offset: 1px; }
-.mdr-content .mdr-chart-sql pre {
+.mdr-content .mdr-source-sql-copy:hover { border-color: #8fd8ca; color: #8fd8ca; }
+.mdr-content .mdr-source-sql-copy:focus-visible { outline: 3px solid #8fd8ca; outline-offset: 1px; }
+.mdr-content .mdr-source-sql pre {
   max-height: 300px;
   margin: 0;
   border: 0;
   border-radius: 0;
   background: transparent;
 }
-.mdr-content .mdr-chart-tab-empty {
+.mdr-content .mdr-view-empty {
   padding: 26px 12px;
   border: 1px dashed var(--mdr-line-strong);
   border-radius: 8px;
@@ -408,7 +409,7 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
   font-size: 0.75rem;
   text-align: center;
 }
-.mdr-content .mdr-chart-tab-empty.mdr-empty { border-style: dashed; }
+.mdr-content .mdr-view-empty.mdr-empty { border-style: dashed; }
 .mdr-content .mdr-chart-note { margin: 3px 0 0; color: var(--mdr-ink-faint); font-size: var(--mdr-text-aux); }
 .mdr-content .mdr-table-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; margin: -5px 0 9px; color: var(--mdr-ink-faint); font-size: var(--mdr-text-aux); }
 .mdr-content .mdr-tabulator-host { width: 100%; max-width: 100%; min-height: 160px; overflow: hidden; border: 1px solid var(--mdr-line); border-radius: 8px; background: var(--mdr-surface); }
@@ -607,15 +608,17 @@ body.mdr-dashboard-page .mdr-kpi-meta { margin-top: 5px; color: #8da7b6; }
 body.mdr-dashboard-page .mdr-kpi-change { background: #1b3447; }
 body.mdr-dashboard-page .mdr-chart { display: flex; flex-direction: column; }
 body.mdr-dashboard-page .mdr-echart { flex: 1; height: auto; min-height: 0; }
-body.mdr-dashboard-page .mdr-chart-toolbar { flex: 0 0 auto; }
-body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="chart"] { display: flex; flex: 1; flex-direction: column; min-height: 0; }
-body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="chart"] .mdr-chart-canvas { flex: 1; height: auto; min-height: 0; }
-body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="data"],
-body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="sql"] { flex: 1; min-height: 0; overflow: auto; }
+body.mdr-dashboard-page .mdr-view-toolbar { flex: 0 0 auto; }
+body.mdr-dashboard-page .mdr-view-panel[data-mdr-view-panel="chart"] { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+body.mdr-dashboard-page .mdr-view-panel[data-mdr-view-panel="chart"] .mdr-chart-canvas { flex: 1; height: auto; min-height: 0; }
+body.mdr-dashboard-page .mdr-view-panel[data-mdr-view-panel="data"],
+body.mdr-dashboard-page .mdr-view-panel[data-mdr-view-panel="sql"] { flex: 1; min-height: 0; overflow: auto; }
 body.mdr-dashboard-page .mdr-chart-note { margin-top: 2px; }
 body.mdr-dashboard-page .mdr-chart .mdr-component-heading { flex: 0 0 auto; }
 body.mdr-dashboard-page .mdr-data-table { display: flex; flex-direction: column; }
 body.mdr-dashboard-page .mdr-data-table .mdr-tabulator-host { flex: 1; min-height: 0; height: auto !important; }
+body.mdr-dashboard-page .mdr-data-table .mdr-view-panel[data-mdr-view-panel="data"] { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+body.mdr-dashboard-page .mdr-data-table .mdr-view-panel[data-mdr-view-panel="sql"] { flex: 1; min-height: 0; overflow: auto; }
 body.mdr-dashboard-page .mdr-table-summary { margin-bottom: 6px; }
 body.mdr-dashboard-page .mdr-footer { display: none; }
 
@@ -625,6 +628,7 @@ body.mdr-dashboard-page .mdr-footer { display: none; }
   .mdr-toc { position: static; max-height: none; }
   .mdr-toc nav { max-height: min(32vh, 240px); }
   .mdr-report-layout--rail { display: block; }
+  .mdr-toc-dock { top: 10px; }
   .mdr-toc--rail { position: absolute; top: 10px; left: 8px; }
   .mdr-toc--rail > nav { width: min(78vw, 240px); max-height: 60vh; }
   .mdr-content .mdr-dashboard { grid-template-columns: repeat(6, minmax(0, 1fr)); }
@@ -733,31 +737,13 @@ body.mdr-dashboard-page .mdr-footer { display: none; }
 <section class="mdr-panel mdr-panel--span-12" data-span="12">
 <section class="mdr-component mdr-kpi"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">指标摘要</span><h3>核心经营指标</h3></div></div><div class="mdr-kpi-grid"><article class="mdr-kpi-card"><div class="mdr-kpi-label">10 月营收</div><div class="mdr-kpi-value">¥100.7万<span></span></div><svg class="mdr-sparkline mdr-sparkline--down" viewBox="0 0 96 26" width="96" height="26" role="img" aria-label="月度营收 迷你趋势图"><path d="M2.0 13.0 L7.4 24.0 L12.8 21.3 L18.2 11.9 L23.6 23.6 L29.1 20.8 L34.5 10.8 L39.9 22.9 L45.3 20.4 L50.7 9.0 L56.1 22.5 L61.5 20.0 L66.9 7.1 L72.4 22.4 L77.8 19.6 L83.2 2.0 L88.6 22.1 L94.0 17.7"/></svg><div class="mdr-kpi-meta"><span class="mdr-kpi-change mdr-kpi-change--positive">+13.9%</span><span>环比</span></div></article><article class="mdr-kpi-card"><div class="mdr-kpi-label">支付订单</div><div class="mdr-kpi-value">8,421<span>单</span></div><div class="mdr-kpi-meta"><span class="mdr-kpi-change mdr-kpi-change--neutral"></span><span></span></div></article><article class="mdr-kpi-card"><div class="mdr-kpi-label">单均金额</div><div class="mdr-kpi-value">¥119.58<span></span></div><div class="mdr-kpi-meta"><span class="mdr-kpi-change mdr-kpi-change--neutral"></span><span></span></div></article><article class="mdr-kpi-card"><div class="mdr-kpi-label">华东占比</div><div class="mdr-kpi-value">53.6%<span></span></div><div class="mdr-kpi-meta"><span class="mdr-kpi-change mdr-kpi-change--positive">+2.5pp</span><span>环比</span></div></article></div></section></section>
 <section class="mdr-panel mdr-panel--span-8" data-span="8">
-<section class="mdr-component mdr-chart" id="mdr-chart-1"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">统计图</span><h3>营收与华东集中度</h3></div><span class="mdr-component-meta">单位：元</span></div><div class="mdr-chart-toolbar"><div class="mdr-chart-tabs" role="tablist" aria-label="营收与华东集中度 视图"><button type="button" role="tab" class="mdr-chart-tab" id="mdr-chart-1-tab-chart" aria-controls="mdr-chart-1-panel-chart" aria-selected="true" tabindex="0" data-mdr-chart-tab="chart">图表</button><button type="button" role="tab" class="mdr-chart-tab" id="mdr-chart-1-tab-data" aria-controls="mdr-chart-1-panel-data" aria-selected="false" tabindex="-1" data-mdr-chart-tab="data">数据</button><button type="button" role="tab" class="mdr-chart-tab" id="mdr-chart-1-tab-sql" aria-controls="mdr-chart-1-panel-sql" aria-selected="false" tabindex="-1" data-mdr-chart-tab="sql">SQL</button></div><span class="mdr-chart-engine" title="图表渲染引擎">ECharts</span></div><div class="mdr-chart-panel" id="mdr-chart-1-panel-chart" role="tabpanel" aria-labelledby="mdr-chart-1-tab-chart" data-mdr-chart-panel="chart"><div class="mdr-chart-canvas mdr-echart" data-engine="echarts" data-kind="combo" data-option="{&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;currency&quot;,&quot;compact&quot;:true,&quot;currency&quot;:&quot;CNY&quot;,&quot;scale&quot;:1,&quot;unit&quot;:&quot;元&quot;},&quot;tooltip&quot;:{&quot;trigger&quot;:&quot;axis&quot;},&quot;legend&quot;:{&quot;type&quot;:&quot;plain&quot;,&quot;top&quot;:2,&quot;left&quot;:8},&quot;grid&quot;:{&quot;left&quot;:54,&quot;right&quot;:56,&quot;top&quot;:36,&quot;bottom&quot;:28,&quot;containLabel&quot;:true},&quot;xAxis&quot;:{&quot;type&quot;:&quot;category&quot;,&quot;data&quot;:[&quot;2026-05&quot;,&quot;2026-06&quot;,&quot;2026-07&quot;,&quot;2026-08&quot;,&quot;2026-09&quot;,&quot;2026-10&quot;],&quot;boundaryGap&quot;:true},&quot;yAxis&quot;:[{&quot;type&quot;:&quot;value&quot;,&quot;splitLine&quot;:{&quot;show&quot;:true},&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;currency&quot;,&quot;compact&quot;:true,&quot;currency&quot;:&quot;CNY&quot;,&quot;scale&quot;:1,&quot;unit&quot;:&quot;元&quot;}},{&quot;type&quot;:&quot;value&quot;,&quot;name&quot;:&quot;&quot;,&quot;splitLine&quot;:{&quot;show&quot;:false},&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;percent&quot;}}],&quot;series&quot;:[{&quot;name&quot;:&quot;月度营收&quot;,&quot;type&quot;:&quot;bar&quot;,&quot;barMaxWidth&quot;:34,&quot;itemStyle&quot;:{&quot;borderRadius&quot;:[5,5,0,0]},&quot;yAxisIndex&quot;:0,&quot;data&quot;:[727000,761000,798000,843000,884000,1007000],&quot;markLine&quot;:{&quot;silent&quot;:true,&quot;symbol&quot;:&quot;none&quot;,&quot;data&quot;:[{&quot;yAxis&quot;:500000,&quot;label&quot;:{&quot;formatter&quot;:&quot;50 万&quot;,&quot;position&quot;:&quot;insideEndTop&quot;,&quot;color&quot;:&quot;__mdr_ink_faint__&quot;,&quot;fontSize&quot;:11},&quot;lineStyle&quot;:{&quot;type&quot;:&quot;dashed&quot;,&quot;width&quot;:1.5,&quot;color&quot;:&quot;__mdr_ink_faint__&quot;}}]}},{&quot;name&quot;:&quot;华东占比&quot;,&quot;type&quot;:&quot;line&quot;,&quot;smooth&quot;:true,&quot;symbolSize&quot;:7,&quot;yAxisIndex&quot;:1,&quot;data&quot;:[0.48418156808803303,0.48751642575558474,0.48872180451127817,0.49940688018979834,0.5113122171945701,0.5362462760675273]}],&quot;toolbox&quot;:{&quot;right&quot;:4,&quot;top&quot;:0,&quot;feature&quot;:{&quot;restore&quot;:{},&quot;saveAsImage&quot;:{&quot;pixelRatio&quot;:2}}}}" role="img" aria-label="营收与华东集中度"></div></div><div class="mdr-chart-panel" id="mdr-chart-1-panel-data" role="tabpanel" aria-labelledby="mdr-chart-1-tab-data" data-mdr-chart-panel="data" hidden><div class="mdr-chart-table-wrap" role="region" aria-label="营收与华东集中度 数据" tabindex="0"><table class="mdr-chart-data-table"><thead><tr><th scope="col">month</th><th scope="col">revenue</th><th scope="col">share_east</th></tr></thead><tbody><tr><td>2026-05</td><td>727000</td><td>0.48418156808803303</td></tr><tr><td>2026-06</td><td>761000</td><td>0.48751642575558474</td></tr><tr><td>2026-07</td><td>798000</td><td>0.48872180451127817</td></tr><tr><td>2026-08</td><td>843000</td><td>0.49940688018979834</td></tr><tr><td>2026-09</td><td>884000</td><td>0.5113122171945701</td></tr><tr><td>2026-10</td><td>1007000</td><td>0.5362462760675273</td></tr></tbody></table></div><p class="mdr-chart-note">共 6 行 · SQLite examples/data/report-data.sqlite · monthly_revenue</p></div><div class="mdr-chart-panel" id="mdr-chart-1-panel-sql" role="tabpanel" aria-labelledby="mdr-chart-1-tab-sql" data-mdr-chart-panel="sql" hidden><div class="mdr-chart-sql"><div class="mdr-chart-sql-head"><span class="mdr-chart-sql-dialect">sqlite</span><span class="mdr-chart-sql-source">SQLite examples/data/report-data.sqlite · monthly_revenue</span><button type="button" class="mdr-chart-sql-copy" data-mdr-copy-sql>复制 SQL</button></div><pre><code class="language-sql">-- Revenue and East-China concentration per month, for the dual-axis chart.
-SELECT
-  month,
-  SUM(revenue) AS revenue,
-  SUM(
-    CASE
-      WHEN region = &#39;华东&#39; THEN revenue
-      ELSE 0
-    END
-  ) * 1.0 / SUM(revenue) AS share_east
-FROM
-  monthly_revenue
-GROUP BY
-  month
-ORDER BY
-  month</code></pre></div></div></section></section>
+<section class="mdr-component mdr-chart" id="mdr-chart-1"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">统计图</span><h3>营收与华东集中度</h3></div><span class="mdr-component-meta">单位：元</span></div><div class="mdr-view-toolbar"><div class="mdr-view-tabs" role="tablist" aria-label="营收与华东集中度 视图"><button type="button" role="tab" class="mdr-view-tab" id="mdr-chart-1-tab-chart" aria-controls="mdr-chart-1-panel-chart" aria-selected="true" tabindex="0" data-mdr-view-tab="chart">图表</button><button type="button" role="tab" class="mdr-view-tab" id="mdr-chart-1-tab-data" aria-controls="mdr-chart-1-panel-data" aria-selected="false" tabindex="-1" data-mdr-view-tab="data">数据</button><button type="button" role="tab" class="mdr-view-tab" id="mdr-chart-1-tab-sql" aria-controls="mdr-chart-1-panel-sql" aria-selected="false" tabindex="-1" data-mdr-view-tab="sql">SQL</button></div><span class="mdr-view-badge" title="图表渲染引擎">ECharts</span></div><div class="mdr-view-panel" id="mdr-chart-1-panel-chart" role="tabpanel" aria-labelledby="mdr-chart-1-tab-chart" data-mdr-view-panel="chart"><div class="mdr-chart-canvas mdr-echart" data-engine="echarts" data-kind="combo" data-option="{&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;currency&quot;,&quot;compact&quot;:true,&quot;currency&quot;:&quot;CNY&quot;,&quot;scale&quot;:1,&quot;unit&quot;:&quot;元&quot;},&quot;tooltip&quot;:{&quot;trigger&quot;:&quot;axis&quot;},&quot;legend&quot;:{&quot;type&quot;:&quot;plain&quot;,&quot;top&quot;:2,&quot;left&quot;:8},&quot;grid&quot;:{&quot;left&quot;:54,&quot;right&quot;:56,&quot;top&quot;:36,&quot;bottom&quot;:28,&quot;containLabel&quot;:true},&quot;xAxis&quot;:{&quot;type&quot;:&quot;category&quot;,&quot;data&quot;:[&quot;2026-05&quot;,&quot;2026-06&quot;,&quot;2026-07&quot;,&quot;2026-08&quot;,&quot;2026-09&quot;,&quot;2026-10&quot;],&quot;boundaryGap&quot;:true},&quot;yAxis&quot;:[{&quot;type&quot;:&quot;value&quot;,&quot;splitLine&quot;:{&quot;show&quot;:true},&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;currency&quot;,&quot;compact&quot;:true,&quot;currency&quot;:&quot;CNY&quot;,&quot;scale&quot;:1,&quot;unit&quot;:&quot;元&quot;}},{&quot;type&quot;:&quot;value&quot;,&quot;name&quot;:&quot;&quot;,&quot;splitLine&quot;:{&quot;show&quot;:false},&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;percent&quot;}}],&quot;series&quot;:[{&quot;name&quot;:&quot;月度营收&quot;,&quot;type&quot;:&quot;bar&quot;,&quot;barMaxWidth&quot;:34,&quot;itemStyle&quot;:{&quot;borderRadius&quot;:[5,5,0,0]},&quot;yAxisIndex&quot;:0,&quot;data&quot;:[727000,761000,798000,843000,884000,1007000],&quot;markLine&quot;:{&quot;silent&quot;:true,&quot;symbol&quot;:&quot;none&quot;,&quot;data&quot;:[{&quot;yAxis&quot;:500000,&quot;label&quot;:{&quot;formatter&quot;:&quot;50 万&quot;,&quot;position&quot;:&quot;insideEndTop&quot;,&quot;color&quot;:&quot;__mdr_ink_faint__&quot;,&quot;fontSize&quot;:11},&quot;lineStyle&quot;:{&quot;type&quot;:&quot;dashed&quot;,&quot;width&quot;:1.5,&quot;color&quot;:&quot;__mdr_ink_faint__&quot;}}]}},{&quot;name&quot;:&quot;华东占比&quot;,&quot;type&quot;:&quot;line&quot;,&quot;smooth&quot;:true,&quot;symbolSize&quot;:7,&quot;yAxisIndex&quot;:1,&quot;data&quot;:[0.48418156808803303,0.48751642575558474,0.48872180451127817,0.49940688018979834,0.5113122171945701,0.5362462760675273]}],&quot;toolbox&quot;:{&quot;right&quot;:4,&quot;top&quot;:0,&quot;feature&quot;:{&quot;restore&quot;:{},&quot;saveAsImage&quot;:{&quot;pixelRatio&quot;:2}}}}" role="img" aria-label="营收与华东集中度"></div></div><div class="mdr-view-panel" id="mdr-chart-1-panel-data" role="tabpanel" aria-labelledby="mdr-chart-1-tab-data" data-mdr-view-panel="data" hidden><div class="mdr-chart-table-wrap" role="region" aria-label="营收与华东集中度 数据" tabindex="0"><table class="mdr-chart-data-table"><thead><tr><th scope="col">month</th><th scope="col">revenue</th><th scope="col">share_east</th></tr></thead><tbody><tr><td>2026-05</td><td>727000</td><td>0.48418156808803303</td></tr><tr><td>2026-06</td><td>761000</td><td>0.48751642575558474</td></tr><tr><td>2026-07</td><td>798000</td><td>0.48872180451127817</td></tr><tr><td>2026-08</td><td>843000</td><td>0.49940688018979834</td></tr><tr><td>2026-09</td><td>884000</td><td>0.5113122171945701</td></tr><tr><td>2026-10</td><td>1007000</td><td>0.5362462760675273</td></tr></tbody></table></div><p class="mdr-chart-note">共 6 行 · SQLite examples/data/report-data.sqlite · monthly_revenue</p></div><div class="mdr-view-panel" id="mdr-chart-1-panel-sql" role="tabpanel" aria-labelledby="mdr-chart-1-tab-sql" data-mdr-view-panel="sql" hidden><div class="mdr-view-empty">数据集 <code>monthly_share</code> 没有声明源端取数 SQL。请在数据集上补充 <code>sourceSql</code>（SQLite 数据集写在 <code>sqlite.datasets.monthly_share.sourceSql</code>）。</div></div></section></section>
 <section class="mdr-panel mdr-panel--span-4" data-span="4">
-<section class="mdr-component mdr-chart" id="mdr-chart-2"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">统计图</span><h3>支付渠道占比</h3></div><span class="mdr-component-meta">单位：单</span></div><div class="mdr-chart-toolbar"><div class="mdr-chart-tabs" role="tablist" aria-label="支付渠道占比 视图"><button type="button" role="tab" class="mdr-chart-tab" id="mdr-chart-2-tab-chart" aria-controls="mdr-chart-2-panel-chart" aria-selected="true" tabindex="0" data-mdr-chart-tab="chart">图表</button><button type="button" role="tab" class="mdr-chart-tab" id="mdr-chart-2-tab-data" aria-controls="mdr-chart-2-panel-data" aria-selected="false" tabindex="-1" data-mdr-chart-tab="data">数据</button><button type="button" role="tab" class="mdr-chart-tab" id="mdr-chart-2-tab-sql" aria-controls="mdr-chart-2-panel-sql" aria-selected="false" tabindex="-1" data-mdr-chart-tab="sql">SQL</button></div><span class="mdr-chart-engine" title="图表渲染引擎">AntV G2</span></div><div class="mdr-chart-panel" id="mdr-chart-2-panel-chart" role="tabpanel" aria-labelledby="mdr-chart-2-tab-chart" data-mdr-chart-panel="chart"><div class="mdr-chart-canvas mdr-echart" data-engine="g2" data-kind="pie" data-g2="{&quot;type&quot;:&quot;interval&quot;,&quot;data&quot;:[{&quot;name&quot;:&quot;内容渠道&quot;,&quot;value&quot;:2980},{&quot;name&quot;:&quot;会员复购&quot;,&quot;value&quot;:2512},{&quot;name&quot;:&quot;搜索投放&quot;,&quot;value&quot;:1710},{&quot;name&quot;:&quot;自然流量&quot;,&quot;value&quot;:1219}],&quot;encode&quot;:{&quot;y&quot;:&quot;value&quot;,&quot;color&quot;:&quot;name&quot;},&quot;transform&quot;:[{&quot;type&quot;:&quot;stackY&quot;}],&quot;coordinate&quot;:{&quot;type&quot;:&quot;theta&quot;,&quot;innerRadius&quot;:0.56,&quot;outerRadius&quot;:0.88},&quot;scale&quot;:{&quot;color&quot;:{&quot;range&quot;:[&quot;__mdr_g2_palette__&quot;]}},&quot;legend&quot;:{&quot;color&quot;:{&quot;position&quot;:&quot;bottom&quot;,&quot;layout&quot;:{&quot;justifyContent&quot;:&quot;center&quot;},&quot;itemLabelFill&quot;:&quot;__mdr_ink_muted__&quot;,&quot;itemLabelFontSize&quot;:11,&quot;itemMarkerSize&quot;:8}},&quot;labels&quot;:[{&quot;mdrLabel&quot;:&quot;share&quot;,&quot;position&quot;:&quot;outside&quot;,&quot;fontSize&quot;:11,&quot;fill&quot;:&quot;__mdr_ink_muted__&quot;}],&quot;style&quot;:{&quot;stroke&quot;:&quot;__mdr_g2_surface__&quot;,&quot;lineWidth&quot;:2,&quot;radius&quot;:4},&quot;tooltip&quot;:{&quot;items&quot;:[{&quot;channel&quot;:&quot;y&quot;,&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;number&quot;,&quot;compact&quot;:false,&quot;currency&quot;:&quot;CNY&quot;,&quot;scale&quot;:1,&quot;unit&quot;:&quot;单&quot;}}]}}" role="img" aria-label="支付渠道占比"></div></div><div class="mdr-chart-panel" id="mdr-chart-2-panel-data" role="tabpanel" aria-labelledby="mdr-chart-2-tab-data" data-mdr-chart-panel="data" hidden><div class="mdr-chart-table-wrap" role="region" aria-label="支付渠道占比 数据" tabindex="0"><table class="mdr-chart-data-table"><thead><tr><th scope="col">channel</th><th scope="col">orders</th></tr></thead><tbody><tr><td>内容渠道</td><td>2980</td></tr><tr><td>会员复购</td><td>2512</td></tr><tr><td>搜索投放</td><td>1710</td></tr><tr><td>自然流量</td><td>1219</td></tr></tbody></table></div><p class="mdr-chart-note">共 4 行 · SQLite examples/data/report-data.sqlite · view report_channel_mix</p></div><div class="mdr-chart-panel" id="mdr-chart-2-panel-sql" role="tabpanel" aria-labelledby="mdr-chart-2-tab-sql" data-mdr-chart-panel="sql" hidden><div class="mdr-chart-sql"><div class="mdr-chart-sql-head"><span class="mdr-chart-sql-dialect">sqlite</span><span class="mdr-chart-sql-source">SQLite examples/data/report-data.sqlite · view report_channel_mix</span><button type="button" class="mdr-chart-sql-copy" data-mdr-copy-sql>复制 SQL</button></div><pre><code class="language-sql">SELECT
-  *
-FROM
-  &quot;report_channel_mix&quot;</code></pre></div></div></section></section>
+<section class="mdr-component mdr-chart" id="mdr-chart-2"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">统计图</span><h3>支付渠道占比</h3></div><span class="mdr-component-meta">单位：单</span></div><div class="mdr-view-toolbar"><div class="mdr-view-tabs" role="tablist" aria-label="支付渠道占比 视图"><button type="button" role="tab" class="mdr-view-tab" id="mdr-chart-2-tab-chart" aria-controls="mdr-chart-2-panel-chart" aria-selected="true" tabindex="0" data-mdr-view-tab="chart">图表</button><button type="button" role="tab" class="mdr-view-tab" id="mdr-chart-2-tab-data" aria-controls="mdr-chart-2-panel-data" aria-selected="false" tabindex="-1" data-mdr-view-tab="data">数据</button><button type="button" role="tab" class="mdr-view-tab" id="mdr-chart-2-tab-sql" aria-controls="mdr-chart-2-panel-sql" aria-selected="false" tabindex="-1" data-mdr-view-tab="sql">SQL</button></div><span class="mdr-view-badge" title="图表渲染引擎">AntV G2</span></div><div class="mdr-view-panel" id="mdr-chart-2-panel-chart" role="tabpanel" aria-labelledby="mdr-chart-2-tab-chart" data-mdr-view-panel="chart"><div class="mdr-chart-canvas mdr-echart" data-engine="g2" data-kind="pie" data-g2="{&quot;type&quot;:&quot;interval&quot;,&quot;data&quot;:[{&quot;name&quot;:&quot;内容渠道&quot;,&quot;value&quot;:2980},{&quot;name&quot;:&quot;会员复购&quot;,&quot;value&quot;:2512},{&quot;name&quot;:&quot;搜索投放&quot;,&quot;value&quot;:1710},{&quot;name&quot;:&quot;自然流量&quot;,&quot;value&quot;:1219}],&quot;encode&quot;:{&quot;y&quot;:&quot;value&quot;,&quot;color&quot;:&quot;name&quot;},&quot;transform&quot;:[{&quot;type&quot;:&quot;stackY&quot;}],&quot;coordinate&quot;:{&quot;type&quot;:&quot;theta&quot;,&quot;innerRadius&quot;:0.56,&quot;outerRadius&quot;:0.88},&quot;scale&quot;:{&quot;color&quot;:{&quot;range&quot;:[&quot;__mdr_g2_palette__&quot;]}},&quot;legend&quot;:{&quot;color&quot;:{&quot;position&quot;:&quot;bottom&quot;,&quot;layout&quot;:{&quot;justifyContent&quot;:&quot;center&quot;},&quot;itemLabelFill&quot;:&quot;__mdr_ink_muted__&quot;,&quot;itemLabelFontSize&quot;:11,&quot;itemMarkerSize&quot;:8}},&quot;labels&quot;:[{&quot;mdrLabel&quot;:&quot;share&quot;,&quot;position&quot;:&quot;outside&quot;,&quot;fontSize&quot;:11,&quot;fill&quot;:&quot;__mdr_ink_muted__&quot;}],&quot;style&quot;:{&quot;stroke&quot;:&quot;__mdr_g2_surface__&quot;,&quot;lineWidth&quot;:2,&quot;radius&quot;:4},&quot;tooltip&quot;:{&quot;items&quot;:[{&quot;channel&quot;:&quot;y&quot;,&quot;mdrFormat&quot;:{&quot;format&quot;:&quot;number&quot;,&quot;compact&quot;:false,&quot;currency&quot;:&quot;CNY&quot;,&quot;scale&quot;:1,&quot;unit&quot;:&quot;单&quot;}}]}}" role="img" aria-label="支付渠道占比"></div></div><div class="mdr-view-panel" id="mdr-chart-2-panel-data" role="tabpanel" aria-labelledby="mdr-chart-2-tab-data" data-mdr-view-panel="data" hidden><div class="mdr-chart-table-wrap" role="region" aria-label="支付渠道占比 数据" tabindex="0"><table class="mdr-chart-data-table"><thead><tr><th scope="col">channel</th><th scope="col">orders</th></tr></thead><tbody><tr><td>内容渠道</td><td>2980</td></tr><tr><td>会员复购</td><td>2512</td></tr><tr><td>搜索投放</td><td>1710</td></tr><tr><td>自然流量</td><td>1219</td></tr></tbody></table></div><p class="mdr-chart-note">共 4 行 · SQLite examples/data/report-data.sqlite · view report_channel_mix</p></div><div class="mdr-view-panel" id="mdr-chart-2-panel-sql" role="tabpanel" aria-labelledby="mdr-chart-2-tab-sql" data-mdr-view-panel="sql" hidden><div class="mdr-view-empty">数据集 <code>channel_mix</code> 没有声明源端取数 SQL。请在数据集上补充 <code>sourceSql</code>（SQLite 数据集写在 <code>sqlite.datasets.channel_mix.sourceSql</code>）。</div></div></section></section>
 <section class="mdr-panel mdr-panel--span-5" data-span="5">
 <section class="mdr-component mdr-ranking"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">排行</span><h3>区域营收排行</h3></div></div><ol class="mdr-ranking-list"><li class="mdr-ranking-item"><span class="mdr-ranking-rank">1</span><span class="mdr-ranking-label">华东</span><span class="mdr-ranking-track"><span class="mdr-ranking-bar" style="width:100%"></span></span><span class="mdr-ranking-value">¥54万</span><span class="mdr-ranking-share">53.6%</span></li><li class="mdr-ranking-item"><span class="mdr-ranking-rank">2</span><span class="mdr-ranking-label">华南</span><span class="mdr-ranking-track"><span class="mdr-ranking-bar" style="width:50%"></span></span><span class="mdr-ranking-value">¥27.1万</span><span class="mdr-ranking-share">26.9%</span></li><li class="mdr-ranking-item"><span class="mdr-ranking-rank">3</span><span class="mdr-ranking-label">华北</span><span class="mdr-ranking-track"><span class="mdr-ranking-bar" style="width:36%"></span></span><span class="mdr-ranking-value">¥19.6万</span><span class="mdr-ranking-share">19.5%</span></li></ol></section></section>
 <section class="mdr-panel mdr-panel--span-7" data-span="7">
-<section class="mdr-component mdr-data-table"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">数据表</span><h3>近期支付订单</h3></div></div><div class="mdr-table-summary"><span>8 行</span><span>数据截至 2026-10-31</span><span>来源 SQLite examples/data/report-data.sqlite · order_details</span><div class="mdr-table-actions"><button type="button" class="mdr-table-action" data-mdr-export="csv">导出 CSV</button><button type="button" class="mdr-table-action" data-mdr-export="clipboard">复制表格</button></div></div><div class="mdr-tabulator-host" style="height:420px" role="region" aria-label="近期支付订单" tabindex="0"><div class="mdr-tabulator" data-table="{&quot;data&quot;:[{&quot;order_id&quot;:&quot;DR-10842&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;会员复购&quot;,&quot;amount&quot;:1280},{&quot;order_id&quot;:&quot;DR-10841&quot;,&quot;region&quot;:&quot;华南&quot;,&quot;channel&quot;:&quot;内容渠道&quot;,&quot;amount&quot;:968},{&quot;order_id&quot;:&quot;DR-10840&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;搜索投放&quot;,&quot;amount&quot;:826},{&quot;order_id&quot;:&quot;DR-10839&quot;,&quot;region&quot;:&quot;华北&quot;,&quot;channel&quot;:&quot;自然流量&quot;,&quot;amount&quot;:712},{&quot;order_id&quot;:&quot;DR-10838&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;内容渠道&quot;,&quot;amount&quot;:685},{&quot;order_id&quot;:&quot;DR-10837&quot;,&quot;region&quot;:&quot;华南&quot;,&quot;channel&quot;:&quot;会员复购&quot;,&quot;amount&quot;:642},{&quot;order_id&quot;:&quot;DR-10836&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;内容渠道&quot;,&quot;amount&quot;:596},{&quot;order_id&quot;:&quot;DR-10835&quot;,&quot;region&quot;:&quot;华北&quot;,&quot;channel&quot;:&quot;搜索投放&quot;,&quot;amount&quot;:482}],&quot;columns&quot;:[{&quot;field&quot;:&quot;order_id&quot;,&quot;title&quot;:&quot;订单号&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;string&quot;},{&quot;field&quot;:&quot;region&quot;,&quot;title&quot;:&quot;地区&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;string&quot;},{&quot;field&quot;:&quot;channel&quot;,&quot;title&quot;:&quot;渠道&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;string&quot;},{&quot;field&quot;:&quot;amount&quot;,&quot;title&quot;:&quot;金额&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;number&quot;,&quot;hozAlign&quot;:&quot;right&quot;}],&quot;formats&quot;:{&quot;amount&quot;:&quot;currency:CNY&quot;},&quot;initialSort&quot;:[{&quot;column&quot;:&quot;amount&quot;,&quot;dir&quot;:&quot;desc&quot;}],&quot;height&quot;:420,&quot;exportable&quot;:true,&quot;title&quot;:&quot;近期支付订单&quot;}"></div></div><p class="mdr-table-status" role="status" aria-live="polite"></p><noscript><p class="mdr-table-noscript">启用 JavaScript 后可查看交互式数据表。</p></noscript></section></section>
+<section class="mdr-component mdr-data-table"><div class="mdr-component-heading"><div><span class="mdr-component-kicker">数据表</span><h3>近期支付订单</h3></div></div><div class="mdr-view-toolbar"><div class="mdr-view-tabs" role="tablist" aria-label="近期支付订单 视图"><button type="button" role="tab" class="mdr-view-tab" id="mdr-table-1-tab-data" aria-controls="mdr-table-1-panel-data" aria-selected="true" tabindex="0" data-mdr-view-tab="data">数据</button><button type="button" role="tab" class="mdr-view-tab" id="mdr-table-1-tab-sql" aria-controls="mdr-table-1-panel-sql" aria-selected="false" tabindex="-1" data-mdr-view-tab="sql">SQL</button></div></div><div class="mdr-view-panel" id="mdr-table-1-panel-data" role="tabpanel" aria-labelledby="mdr-table-1-tab-data" data-mdr-view-panel="data"><div class="mdr-table-summary"><span>8 行</span><span>数据截至 2026-10-31</span><span>来源 SQLite examples/data/report-data.sqlite · order_details</span><div class="mdr-table-actions"><button type="button" class="mdr-table-action" data-mdr-export="csv">导出 CSV</button><button type="button" class="mdr-table-action" data-mdr-export="clipboard">复制表格</button></div></div><div class="mdr-tabulator-host" style="height:420px" role="region" aria-label="近期支付订单" tabindex="0"><div class="mdr-tabulator" data-table="{&quot;data&quot;:[{&quot;order_id&quot;:&quot;DR-10842&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;会员复购&quot;,&quot;amount&quot;:1280},{&quot;order_id&quot;:&quot;DR-10841&quot;,&quot;region&quot;:&quot;华南&quot;,&quot;channel&quot;:&quot;内容渠道&quot;,&quot;amount&quot;:968},{&quot;order_id&quot;:&quot;DR-10840&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;搜索投放&quot;,&quot;amount&quot;:826},{&quot;order_id&quot;:&quot;DR-10839&quot;,&quot;region&quot;:&quot;华北&quot;,&quot;channel&quot;:&quot;自然流量&quot;,&quot;amount&quot;:712},{&quot;order_id&quot;:&quot;DR-10838&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;内容渠道&quot;,&quot;amount&quot;:685},{&quot;order_id&quot;:&quot;DR-10837&quot;,&quot;region&quot;:&quot;华南&quot;,&quot;channel&quot;:&quot;会员复购&quot;,&quot;amount&quot;:642},{&quot;order_id&quot;:&quot;DR-10836&quot;,&quot;region&quot;:&quot;华东&quot;,&quot;channel&quot;:&quot;内容渠道&quot;,&quot;amount&quot;:596},{&quot;order_id&quot;:&quot;DR-10835&quot;,&quot;region&quot;:&quot;华北&quot;,&quot;channel&quot;:&quot;搜索投放&quot;,&quot;amount&quot;:482}],&quot;columns&quot;:[{&quot;field&quot;:&quot;order_id&quot;,&quot;title&quot;:&quot;订单号&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;string&quot;},{&quot;field&quot;:&quot;region&quot;,&quot;title&quot;:&quot;地区&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;string&quot;},{&quot;field&quot;:&quot;channel&quot;,&quot;title&quot;:&quot;渠道&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;string&quot;},{&quot;field&quot;:&quot;amount&quot;,&quot;title&quot;:&quot;金额&quot;,&quot;minWidth&quot;:112,&quot;sorter&quot;:&quot;number&quot;,&quot;hozAlign&quot;:&quot;right&quot;}],&quot;formats&quot;:{&quot;amount&quot;:&quot;currency:CNY&quot;},&quot;initialSort&quot;:[{&quot;column&quot;:&quot;amount&quot;,&quot;dir&quot;:&quot;desc&quot;}],&quot;height&quot;:420,&quot;exportable&quot;:true,&quot;title&quot;:&quot;近期支付订单&quot;}"></div></div><p class="mdr-table-status" role="status" aria-live="polite"></p><noscript><p class="mdr-table-noscript">启用 JavaScript 后可查看交互式数据表。</p></noscript></div><div class="mdr-view-panel" id="mdr-table-1-panel-sql" role="tabpanel" aria-labelledby="mdr-table-1-tab-sql" data-mdr-view-panel="sql" hidden><div class="mdr-view-empty">数据集 <code>order_details</code> 没有声明源端取数 SQL。请在数据集上补充 <code>sourceSql</code>（SQLite 数据集写在 <code>sqlite.datasets.order_details.sourceSql</code>）。</div></div></section></section>
 </section>
 </article>
   </main>
@@ -1128,15 +1114,15 @@ var Vv=function(t){function e(t,n,r,i){var a;return bc(this,e),(a=_c(this,e,[t])
   window.addEventListener('beforeprint', resize);
 })();</script>
   <script>(() => {
-  const sections = document.querySelectorAll('.mdr-chart');
+  const sections = document.querySelectorAll('.mdr-chart, .mdr-data-table');
   sections.forEach((section) => {
-    const tabs = Array.from(section.querySelectorAll('[data-mdr-chart-tab]'));
+    const tabs = Array.from(section.querySelectorAll('[data-mdr-view-tab]'));
     if (tabs.length === 0) return;
-    const panels = new Map(Array.from(section.querySelectorAll('[data-mdr-chart-panel]'))
-      .map((panel) => [panel.getAttribute('data-mdr-chart-panel'), panel]));
+    const panels = new Map(Array.from(section.querySelectorAll('[data-mdr-view-panel]'))
+      .map((panel) => [panel.getAttribute('data-mdr-view-panel'), panel]));
     const select = (name, focusTab) => {
       tabs.forEach((tab) => {
-        const active = tab.getAttribute('data-mdr-chart-tab') === name;
+        const active = tab.getAttribute('data-mdr-view-tab') === name;
         tab.setAttribute('aria-selected', active ? 'true' : 'false');
         tab.tabIndex = active ? 0 : -1;
         if (active && focusTab) tab.focus();
@@ -1145,20 +1131,22 @@ var Vv=function(t){function e(t,n,r,i){var a;return bc(this,e),(a=_c(this,e,[t])
       // A chart initialized while its panel was visible still needs a size refresh
       // after the reader comes back from Data or SQL.
       if (name === 'chart') window.dispatchEvent(new Event('resize'));
+      // Tabulator lives in the Data panel; ask it to redraw once that panel is visible.
+      window.dispatchEvent(new CustomEvent('mdr:view-change', { detail: { section, name } }));
     };
     tabs.forEach((tab, index) => {
-      tab.addEventListener('click', () => select(tab.getAttribute('data-mdr-chart-tab')));
+      tab.addEventListener('click', () => select(tab.getAttribute('data-mdr-view-tab')));
       tab.addEventListener('keydown', (event) => {
         const steps = { ArrowRight: 1, ArrowLeft: -1, Home: -index, End: tabs.length - 1 - index };
         if (!(event.key in steps)) return;
         event.preventDefault();
         const next = tabs[(index + steps[event.key] + tabs.length) % tabs.length];
-        select(next.getAttribute('data-mdr-chart-tab'), true);
+        select(next.getAttribute('data-mdr-view-tab'), true);
       });
     });
     section.querySelectorAll('[data-mdr-copy-sql]').forEach((button) => {
       button.addEventListener('click', async () => {
-        const code = section.querySelector('[data-mdr-chart-panel="sql"] code');
+        const code = section.querySelector('[data-mdr-view-panel="sql"] code');
         if (!code) return;
         const text = code.textContent || '';
         try {
@@ -1307,6 +1295,11 @@ SOFTWARE.
     describe(table, config);
     table.on('dataSorted', () => describe(table, config));
     const section = element.closest('.mdr-data-table');
+    window.addEventListener('mdr:view-change', (event) => {
+      if (section && event.detail && event.detail.section === section && event.detail.name === 'data') {
+        try { table.redraw(); } catch (error) { /* the table may already be disposed */ }
+      }
+    });
     section?.querySelectorAll('[data-mdr-export]').forEach((button) => {
       button.addEventListener('click', async () => {
         const csv = buildCsv(config);

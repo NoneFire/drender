@@ -10,10 +10,14 @@ export interface ComponentDataset {
   source?: string;
   fetchedAt?: string;
   updatedAt?: string;
-  /** SQL text that produced this snapshot, when the host ran a query. */
+  /** Local query that materialized this snapshot; not shown as the source SQL. */
   sql?: string;
-  /** Dialect for `sql`; only SQLite is executed by this renderer's data sources. */
+  /** Dialect for the local `sql`. */
   sqlDialect?: string;
+  /** Upstream extraction SQL from the source system, shown in Data/SQL tabs. */
+  sourceSql?: string;
+  /** Dialect of `sourceSql`, used only for formatting. */
+  sourceSqlDialect?: string;
 }
 
 export type ComponentDatasets = Record<string, ComponentDataset>;
@@ -953,7 +957,7 @@ function buildG2Chart(kind: string, context: ChartContext): JsonObject | undefin
 
 /** Dataset rows as an inspectable table. This is the evidence behind the picture. */
 function renderChartDataPanel(dataset: ComponentDataset, rows: RecordRow[], title: string): string {
-  if (!rows.length) return '<div class="mdr-chart-tab-empty">该数据集没有可用于展示的行。</div>';
+  if (!rows.length) return '<div class="mdr-view-empty">该数据集没有可用于展示的行。</div>';
   const declared = Array.isArray(dataset.columns) ? dataset.columns.map((column) => column.name) : [];
   const columns = declared.length ? declared : Object.keys(rows[0] ?? {});
   const shown = rows.slice(0, CHART_DATA_ROW_LIMIT);
@@ -971,23 +975,38 @@ function renderChartDataPanel(dataset: ComponentDataset, rows: RecordRow[], titl
   return `<div class="mdr-chart-table-wrap" role="region" aria-label="${escape(title)} 数据" tabindex="0"><table class="mdr-chart-data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="mdr-chart-note">${escape(note)}${escape(source)}</p>`;
 }
 
-/** SQL that produced the dataset, formatted for reading; CSV and inline snapshots have none. */
-function renderChartSqlPanel(dataset: ComponentDataset, datasetName: string): string {
-  if (typeof dataset.sql !== 'string' || !dataset.sql.trim()) {
-    return `<div class="mdr-chart-tab-empty">数据集 <code>${escape(datasetName)}</code> 来自 CSV 或内联快照，没有对应的 SQL 查询。</div>`;
+/** Source-system extraction SQL. The local snapshot query is intentionally not shown. */
+function renderSourceSqlPanel(dataset: ComponentDataset, datasetName: string): string {
+  const sourceSql = typeof dataset.sourceSql === 'string' ? dataset.sourceSql.trim() : '';
+  if (!sourceSql) {
+    return `<div class="mdr-view-empty">数据集 <code>${escape(datasetName)}</code> 没有声明源端取数 SQL。请在数据集上补充 <code>sourceSql</code>（SQLite 数据集写在 <code>sqlite.datasets.${escape(datasetName)}.sourceSql</code>）。</div>`;
   }
-  const dialect = typeof dataset.sqlDialect === 'string' && dataset.sqlDialect.trim() ? dataset.sqlDialect.trim() : 'sqlite';
-  let formatted = dataset.sql;
+  const dialect = typeof dataset.sourceSqlDialect === 'string' && dataset.sourceSqlDialect.trim() ? dataset.sourceSqlDialect.trim() : 'sql';
+  let formatted = sourceSql;
   try {
-    formatted = formatSql(dataset.sql, { language: dialect as 'sql' | 'postgresql' | 'mysql' | 'bigquery' | 'duckdb' | 'sqlite', tabWidth: 2 });
+    formatted = formatSql(sourceSql, { language: dialect as 'sql' | 'postgresql' | 'mysql' | 'bigquery' | 'duckdb' | 'sqlite', tabWidth: 2 });
   } catch {
     // Keep the author's query intact when the formatter does not support a construct.
   }
-  const source = typeof dataset.source === 'string' && dataset.source.trim() ? dataset.source.trim() : datasetName;
-  return `<div class="mdr-chart-sql"><div class="mdr-chart-sql-head"><span class="mdr-chart-sql-dialect">${escape(dialect)}</span><span class="mdr-chart-sql-source">${escape(source)}</span><button type="button" class="mdr-chart-sql-copy" data-mdr-copy-sql>复制 SQL</button></div><pre><code class="language-sql">${escape(formatted)}</code></pre></div>`;
+  return `<div class="mdr-source-sql"><div class="mdr-source-sql-head"><span class="mdr-source-sql-dialect">${escape(dialect)}</span><span class="mdr-source-sql-label">源端取数 SQL · ${escape(datasetName)}</span><button type="button" class="mdr-source-sql-copy" data-mdr-copy-sql>复制 SQL</button></div><pre><code class="language-sql">${escape(formatted)}</code></pre></div>`;
 }
 
-/** Chart / data / SQL tabs: one place for the picture, the rows behind it, and the query. */
+interface ViewTab {
+  name: string;
+  label: string;
+  content: string;
+}
+
+/** Shared tab frame for charts and data tables: one card, several comparable views. */
+function renderViewFrame(componentId: string, title: string, tabs: ViewTab[], badge?: string): string {
+  const button = (tab: ViewTab, index: number): string =>
+    `<button type="button" role="tab" class="mdr-view-tab" id="${escape(componentId)}-tab-${tab.name}" aria-controls="${escape(componentId)}-panel-${tab.name}" aria-selected="${index === 0 ? 'true' : 'false'}" tabindex="${index === 0 ? '0' : '-1'}" data-mdr-view-tab="${tab.name}">${tab.label}</button>`;
+  const panel = (tab: ViewTab, index: number): string =>
+    `<div class="mdr-view-panel" id="${escape(componentId)}-panel-${tab.name}" role="tabpanel" aria-labelledby="${escape(componentId)}-tab-${tab.name}" data-mdr-view-panel="${tab.name}"${index === 0 ? '' : ' hidden'}>${tab.content}</div>`;
+  return `<div class="mdr-view-toolbar"><div class="mdr-view-tabs" role="tablist" aria-label="${escape(title)} 视图">${tabs.map(button).join('')}</div>${badge ? `<span class="mdr-view-badge" title="图表渲染引擎">${escape(badge)}</span>` : ''}</div>${tabs.map(panel).join('')}`;
+}
+
+/** Chart / data / SQL tabs: one place for the picture, the rows behind it, and the source query. */
 function renderChartFrame(
   chartId: string,
   engine: ChartEngine,
@@ -996,11 +1015,11 @@ function renderChartFrame(
   dataPanel: string,
   sqlPanel: string,
 ): string {
-  const tab = (name: 'chart' | 'data' | 'sql', label: string, selected: boolean): string =>
-    `<button type="button" role="tab" class="mdr-chart-tab" id="${escape(chartId)}-tab-${name}" aria-controls="${escape(chartId)}-panel-${name}" aria-selected="${selected ? 'true' : 'false'}" tabindex="${selected ? '0' : '-1'}" data-mdr-chart-tab="${name}">${label}</button>`;
-  const panel = (name: 'chart' | 'data' | 'sql', content: string, selected: boolean): string =>
-    `<div class="mdr-chart-panel" id="${escape(chartId)}-panel-${name}" role="tabpanel" aria-labelledby="${escape(chartId)}-tab-${name}" data-mdr-chart-panel="${name}"${selected ? '' : ' hidden'}>${content}</div>`;
-  return `<div class="mdr-chart-toolbar"><div class="mdr-chart-tabs" role="tablist" aria-label="${escape(title)} 视图">${tab('chart', '图表', true)}${tab('data', '数据', false)}${tab('sql', 'SQL', false)}</div><span class="mdr-chart-engine" title="图表渲染引擎">${engine === 'g2' ? 'AntV G2' : 'ECharts'}</span></div>${panel('chart', canvas, true)}${panel('data', dataPanel, false)}${panel('sql', sqlPanel, false)}`;
+  return renderViewFrame(chartId, title, [
+    { name: 'chart', label: '图表', content: canvas },
+    { name: 'data', label: '数据', content: dataPanel },
+    { name: 'sql', label: 'SQL', content: sqlPanel },
+  ], engine === 'g2' ? 'AntV G2' : 'ECharts');
 }
 
 function renderChart(source: string, datasets: ComponentDatasets, chartId: string, metrics: MetricRegistry = {}): string | undefined {
@@ -1022,14 +1041,14 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
   const valueFormat = chartValueFormat(spec, metric);
   const dataset = datasets[reference.name] ?? {};
   const dataPanel = renderChartDataPanel(dataset, rows, title);
-  const sqlPanel = renderChartSqlPanel(dataset, reference.name);
+  const sqlPanel = renderSourceSqlPanel(dataset, reference.name);
   // G2 is the default for the kinds its grammar covers; complex charts keep ECharts.
   const requestedEngine: ChartEngine = spec.engine === 'echarts' ? 'echarts' : 'g2';
   const engine: ChartEngine = requestedEngine === 'g2' && (G2_CHART_KINDS as readonly string[]).includes(kind) ? 'g2' : 'echarts';
   const anchorId = typeof spec.anchor === 'string' && /^[A-Za-z][A-Za-z0-9._-]{0,127}$/.test(spec.anchor) ? spec.anchor : chartId;
   const section = (meta: string | undefined, content: string): string =>
     `<section class="mdr-component mdr-chart" id="${escape(anchorId)}">${titleBar(title, '统计图', spec.kicker, meta)}${content}</section>`;
-  const emptyCanvas = '<div class="mdr-chart-tab-empty mdr-empty">没有可绘制的数据</div>';
+  const emptyCanvas = '<div class="mdr-view-empty mdr-empty">没有可绘制的数据</div>';
   const canvas = (engineName: ChartEngine, attribute: string, serialized: string): string =>
     `<div class="mdr-chart-canvas mdr-echart" data-engine="${engineName}" data-kind="${escape(kind)}" ${attribute}="${serialized}" role="img" aria-label="${escape(title)}"></div>`;
 
@@ -1131,18 +1150,19 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
   const chartCanvas = canvas('echarts', 'data-option', escape(JSON.stringify(option)));
   return section(unit ? `单位：${unit}` : undefined, renderChartFrame(chartId, 'echarts', title, chartCanvas, dataPanel, sqlPanel));
 }
-function renderTable(source: string, datasets: ComponentDatasets, metrics: MetricRegistry = {}): string | undefined {
+function renderTable(source: string, datasets: ComponentDatasets, metrics: MetricRegistry = {}, componentId = 'mdr-table-1'): string | undefined {
   const spec = parseJson(source); if (!spec) return undefined;
   const reference = dataReference(spec, datasets); if (!reference) return undefined;
-  const dataset = datasets[reference.name];
+  const dataset = datasets[reference.name] ?? {};
   const columns: JsonObject[] = Array.isArray(spec.columns)
     ? spec.columns.map(object).filter((column): column is JsonObject => !!column)
     : Object.keys(reference.rows[0] ?? {}).length > 0
       ? Object.keys(reference.rows[0] ?? {}).map((field): JsonObject => ({ field, label: field }))
-      : (dataset?.columns ?? []).map((column): JsonObject => ({ field: column.name, label: column.name }));
+      : (dataset.columns ?? []).map((column): JsonObject => ({ field: column.name, label: column.name }));
   const sort = object(spec.defaultSort);
   const height = Math.max(160, Math.min(1200, number(spec.viewportHeight) ?? 480));
   const rows = reference.rows.slice(0, 5000);
+  const title = String(spec.title || '数据明细');
   // Cell formats travel in a side map: Tabulator rejects unknown column definition options.
   const formats: Record<string, string> = {};
   const tableColumns = columns.map((column) => {
@@ -1167,20 +1187,25 @@ function renderTable(source: string, datasets: ComponentDatasets, metrics: Metri
     ? [{ column: sort.field, dir: sort.direction === 'desc' ? 'desc' : 'asc' }]
     : [];
   const exportable = spec.exportable !== false;
-  const tableConfig = escape(JSON.stringify({ data, columns: tableColumns, formats, initialSort, height, exportable, title: spec.title || '数据明细' }));
-  const updatedAt = spec.updatedAt || dataset?.updatedAt;
+  const tableConfig = escape(JSON.stringify({ data, columns: tableColumns, formats, initialSort, height, exportable, title }));
+  const updatedAt = spec.updatedAt || dataset.updatedAt;
   const rowSummary = reference.rows.length > rows.length
     ? `显示 ${rows.length.toLocaleString('zh-CN')} / ${reference.rows.length.toLocaleString('zh-CN')} 行`
     : `${reference.rows.length.toLocaleString('zh-CN')} 行`;
   const provenance = [
     updatedAt ? `<span>数据截至 ${escape(updatedAt)}</span>` : '',
-    dataset?.source ? `<span>来源 ${escape(dataset.source)}</span>` : '',
-    dataset?.fetchedAt ? `<span>抓取于 ${escape(dataset.fetchedAt)}</span>` : '',
+    dataset.source ? `<span>来源 ${escape(dataset.source)}</span>` : '',
+    dataset.fetchedAt ? `<span>抓取于 ${escape(dataset.fetchedAt)}</span>` : '',
   ].filter(Boolean).join('');
   const actions = exportable
     ? `<div class="mdr-table-actions"><button type="button" class="mdr-table-action" data-mdr-export="csv">导出 CSV</button><button type="button" class="mdr-table-action" data-mdr-export="clipboard">复制表格</button></div>`
     : '';
-  return `<section class="mdr-component mdr-data-table"${anchorAttribute(spec)}>${titleBar(spec.title || '数据明细', '数据表', spec.kicker)}<div class="mdr-table-summary"><span>${rowSummary}</span>${provenance}${actions}</div><div class="mdr-tabulator-host" style="height:${height}px" role="region" aria-label="${escape(spec.title || '数据明细')}" tabindex="0"><div class="mdr-tabulator" data-table="${tableConfig}"></div></div><p class="mdr-table-status" role="status" aria-live="polite"></p><noscript><p class="mdr-table-noscript">启用 JavaScript 后可查看交互式数据表。</p></noscript></section>`;
+  const dataPanel = `<div class="mdr-table-summary"><span>${rowSummary}</span>${provenance}${actions}</div><div class="mdr-tabulator-host" style="height:${height}px" role="region" aria-label="${escape(title)}" tabindex="0"><div class="mdr-tabulator" data-table="${tableConfig}"></div></div><p class="mdr-table-status" role="status" aria-live="polite"></p><noscript><p class="mdr-table-noscript">启用 JavaScript 后可查看交互式数据表。</p></noscript>`;
+  const sqlPanel = renderSourceSqlPanel(dataset, reference.name);
+  return `<section class="mdr-component mdr-data-table"${anchorAttribute(spec)}>${titleBar(title, '数据表', spec.kicker)}${renderViewFrame(componentId, title, [
+    { name: 'data', label: '数据', content: dataPanel },
+    { name: 'sql', label: 'SQL', content: sqlPanel },
+  ])}</section>`;
 }
 
 function renderSql(source: string, info: string): string {
@@ -1449,13 +1474,13 @@ function renderComponent(
   info: string,
   datasets: ComponentDatasets,
   scenes: ComponentScenes,
-  chartId = 'mdr-chart-1',
+  componentId = 'mdr-component-1',
   metrics: MetricRegistry = {},
 ): string | undefined {
   switch (language.toLowerCase()) {
     case 'kpi': return renderKpi(source, datasets, metrics);
-    case 'chart': return renderChart(source, datasets, chartId, metrics);
-    case 'data-table': return renderTable(source, datasets, metrics);
+    case 'chart': return renderChart(source, datasets, componentId, metrics);
+    case 'data-table': return renderTable(source, datasets, metrics, componentId);
     case 'ranking': return renderRanking(source, datasets, metrics);
     case 'pivot': return renderPivot(source, datasets, metrics);
     case 'findings': return renderFindings(source, datasets, metrics);
@@ -1559,17 +1584,20 @@ export function registerComponentRenderers(
 ): void {
   registerLayoutBlocks(md);
   let chartIndex = 0;
+  let tableIndex = 0;
   const defaultFence = md.renderer.rules.fence;
   md.renderer.rules.fence = (tokens, index, options, env, renderer) => {
     const token = tokens[index];
     if (!token) return '';
     const info = token.info.trim(); const language = info.split(/\s+/, 1)[0] ?? '';
-    const chartId = language.toLowerCase() === 'chart' ? `mdr-chart-${++chartIndex}` : undefined;
+    const componentId = language.toLowerCase() === 'chart'
+      ? `mdr-chart-${++chartIndex}`
+      : language.toLowerCase() === 'data-table' ? `mdr-table-${++tableIndex}` : undefined;
     // Narrative components carry prose, so `{{metric_id}}` tokens resolve before rendering.
     const content = ['antv-t8', 'infographic', 'mermaid'].includes(language.toLowerCase())
       ? substituteMetricTokens(token.content, metrics, datasets)
       : token.content;
-    const component = renderComponent(language, content, info, datasets, scenes, chartId, metrics);
+    const component = renderComponent(language, content, info, datasets, scenes, componentId, metrics);
     return component ?? defaultFence?.(tokens, index, options, env, renderer) ?? `<pre><code>${escape(token.content)}</code></pre>\n`;
   };
 

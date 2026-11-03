@@ -13,6 +13,10 @@ export interface DatasetSourceMetadata {
   source?: string;
   fetchedAt?: string;
   updatedAt?: string;
+  /** Upstream extraction SQL shown in the report's Data/SQL tabs. */
+  sourceSql?: string;
+  /** Dialect of `sourceSql`, used only for formatting. */
+  sourceSqlDialect?: string;
 }
 
 const DEFAULT_MAX_ROWS = 5000;
@@ -224,6 +228,8 @@ export function parseCsvDataset(
     ...(options.source ? { source: options.source } : {}),
     ...(options.fetchedAt ? { fetchedAt: options.fetchedAt } : {}),
     ...(options.updatedAt ? { updatedAt: options.updatedAt } : {}),
+    ...(options.sourceSql ? { sourceSql: options.sourceSql } : {}),
+    ...(options.sourceSqlDialect ? { sourceSqlDialect: options.sourceSqlDialect } : {}),
   };
 }
 
@@ -380,9 +386,11 @@ function queryDataset(database: DatabaseSyncType, source: SqliteDatasetSource, d
     columns: result.columns,
     rows: result.rows,
     source: source.source ?? `SQLite ${databasePath} · ${provenance}`,
-    // Carry the executed query so a chart can show its own evidence next to the picture.
+    // Keep the local materialization query separate from the upstream SQL shown to readers.
     sql: query,
     sqlDialect: 'sqlite',
+    ...(source.sourceSql ? { sourceSql: source.sourceSql } : {}),
+    ...(source.sourceSqlDialect ? { sourceSqlDialect: source.sourceSqlDialect } : {}),
     ...(source.fetchedAt ? { fetchedAt: source.fetchedAt } : {}),
     ...(source.updatedAt ? { updatedAt: source.updatedAt } : {}),
   };
@@ -507,6 +515,8 @@ export function loadSqliteDataset(options: DatasetSourceMetadata & {
       ...(options.updatedAt ? { updatedAt: options.updatedAt } : {}),
       sql: options.sql,
       sqlDialect: 'sqlite',
+      ...(options.sourceSql ? { sourceSql: options.sourceSql } : {}),
+      ...(options.sourceSqlDialect ? { sourceSqlDialect: options.sourceSqlDialect } : {}),
     };
   } finally {
     database.close();

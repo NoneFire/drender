@@ -547,16 +547,16 @@ const g2Bootstrap = String.raw`(() => {
   window.addEventListener('resize', resize, { passive: true });
   window.addEventListener('beforeprint', resize);
 })();`;
-const chartTabsBootstrap = String.raw`(() => {
-  const sections = document.querySelectorAll('.mdr-chart');
+const viewTabsBootstrap = String.raw`(() => {
+  const sections = document.querySelectorAll('.mdr-chart, .mdr-data-table');
   sections.forEach((section) => {
-    const tabs = Array.from(section.querySelectorAll('[data-mdr-chart-tab]'));
+    const tabs = Array.from(section.querySelectorAll('[data-mdr-view-tab]'));
     if (tabs.length === 0) return;
-    const panels = new Map(Array.from(section.querySelectorAll('[data-mdr-chart-panel]'))
-      .map((panel) => [panel.getAttribute('data-mdr-chart-panel'), panel]));
+    const panels = new Map(Array.from(section.querySelectorAll('[data-mdr-view-panel]'))
+      .map((panel) => [panel.getAttribute('data-mdr-view-panel'), panel]));
     const select = (name, focusTab) => {
       tabs.forEach((tab) => {
-        const active = tab.getAttribute('data-mdr-chart-tab') === name;
+        const active = tab.getAttribute('data-mdr-view-tab') === name;
         tab.setAttribute('aria-selected', active ? 'true' : 'false');
         tab.tabIndex = active ? 0 : -1;
         if (active && focusTab) tab.focus();
@@ -565,20 +565,22 @@ const chartTabsBootstrap = String.raw`(() => {
       // A chart initialized while its panel was visible still needs a size refresh
       // after the reader comes back from Data or SQL.
       if (name === 'chart') window.dispatchEvent(new Event('resize'));
+      // Tabulator lives in the Data panel; ask it to redraw once that panel is visible.
+      window.dispatchEvent(new CustomEvent('mdr:view-change', { detail: { section, name } }));
     };
     tabs.forEach((tab, index) => {
-      tab.addEventListener('click', () => select(tab.getAttribute('data-mdr-chart-tab')));
+      tab.addEventListener('click', () => select(tab.getAttribute('data-mdr-view-tab')));
       tab.addEventListener('keydown', (event) => {
         const steps = { ArrowRight: 1, ArrowLeft: -1, Home: -index, End: tabs.length - 1 - index };
         if (!(event.key in steps)) return;
         event.preventDefault();
         const next = tabs[(index + steps[event.key] + tabs.length) % tabs.length];
-        select(next.getAttribute('data-mdr-chart-tab'), true);
+        select(next.getAttribute('data-mdr-view-tab'), true);
       });
     });
     section.querySelectorAll('[data-mdr-copy-sql]').forEach((button) => {
       button.addEventListener('click', async () => {
-        const code = section.querySelector('[data-mdr-chart-panel="sql"] code');
+        const code = section.querySelector('[data-mdr-view-panel="sql"] code');
         if (!code) return;
         const text = code.textContent || '';
         try {
@@ -702,6 +704,11 @@ const tableBootstrap = String.raw`(() => {
     describe(table, config);
     table.on('dataSorted', () => describe(table, config));
     const section = element.closest('.mdr-data-table');
+    window.addEventListener('mdr:view-change', (event) => {
+      if (section && event.detail && event.detail.section === section && event.detail.name === 'data') {
+        try { table.redraw(); } catch (error) { /* the table may already be disposed */ }
+      }
+    });
     section?.querySelectorAll('[data-mdr-export]').forEach((button) => {
       button.addEventListener('click', async () => {
         const csv = buildCsv(config);
@@ -802,7 +809,7 @@ const hashesFor = (sources: readonly string[]): string => sources
   .join(' ');
 const chartScriptHashes = hashesFor([echartsRuntime, chartBootstrap]);
 const g2ScriptHashes = hashesFor([g2Runtime, g2Bootstrap]);
-const chartTabsScriptHashes = hashesFor([chartTabsBootstrap]);
+const viewTabsScriptHashes = hashesFor([viewTabsBootstrap]);
 const tableScriptHashes = hashesFor([tabulatorRuntime, tableBootstrap]);
 const t8ScriptHashes = hashesFor([t8Runtime, t8Bootstrap]);
 const infographicScriptHashes = hashesFor([infographicRuntime, infographicBootstrap]);
@@ -848,10 +855,14 @@ export interface ReportDataset {
   fetchedAt?: string;
   /** Latest business/data date represented by this snapshot. */
   updatedAt?: string;
-  /** SQL text that produced this snapshot, when a host ran a query for it. */
+  /** Local query that materialized this snapshot; not shown as the source SQL. */
   sql?: string;
-  /** SQL dialect for `sql`; rendered for the reader, never executed from the document. */
+  /** Dialect for the local `sql`; rendered only when a host asks for it. */
   sqlDialect?: string;
+  /** Upstream extraction SQL from the source system, shown in chart and table SQL tabs. */
+  sourceSql?: string;
+  /** Dialect of `sourceSql`; displayed, never executed from the document. */
+  sourceSqlDialect?: string;
 }
 
 export type SqliteParameter = string | number | boolean | null;
@@ -873,6 +884,10 @@ export interface SqliteDatasetSource {
   source?: string;
   fetchedAt?: string;
   updatedAt?: string;
+  /** Upstream extraction SQL, documented for readers; not executed by the host. */
+  sourceSql?: string;
+  /** Dialect of `sourceSql`, used only for formatting the SQL tab. */
+  sourceSqlDialect?: string;
 }
 
 export interface SqliteSceneSource {
@@ -1064,7 +1079,7 @@ function validateSqliteSourceConfig(value: unknown, diagnostics: Diagnostic[]): 
         continue;
       }
       const allowed = kind === 'dataset'
-        ? ['table', 'tables', 'query', 'queryFile', 'view', 'parameters', 'columns', 'maxRows', 'source', 'fetchedAt', 'updatedAt']
+        ? ['table', 'tables', 'query', 'queryFile', 'view', 'parameters', 'columns', 'maxRows', 'source', 'fetchedAt', 'updatedAt', 'sourceSql', 'sourceSqlDialect']
         : ['table', 'tables', 'query', 'queryFile', 'view', 'parameters', 'column'];
       for (const key of Object.keys(item)) {
         if (!allowed.includes(key)) addDiagnostic(diagnostics, 'error', 'sqlite.query-unknown-key', `Unknown SQLite ${kind} source key "${key}".`, 1, `${itemPath}.${key}`);
@@ -1104,7 +1119,7 @@ function validateSqliteSourceConfig(value: unknown, diagnostics: Diagnostic[]): 
         if (item.maxRows !== undefined && (!Number.isInteger(item.maxRows) || Number(item.maxRows) < 1 || Number(item.maxRows) > 5000)) {
           addDiagnostic(diagnostics, 'error', 'sqlite.max-rows', 'SQLite dataset maxRows must be an integer from 1 to 5000.', 1, `${itemPath}.maxRows`);
         }
-        for (const field of ['source', 'fetchedAt', 'updatedAt', 'sql', 'sqlDialect']) {
+        for (const field of ['source', 'fetchedAt', 'updatedAt', 'sql', 'sqlDialect', 'sourceSql', 'sourceSqlDialect']) {
           if (item[field] !== undefined && typeof item[field] !== 'string') {
             addDiagnostic(diagnostics, 'error', 'sqlite.metadata', `SQLite dataset ${field} must be a string.`, 1, `${itemPath}.${field}`);
           }
@@ -1698,7 +1713,7 @@ function validateDatasets(document: ReportDocument, diagnostics: Diagnostic[]): 
     }
 
     const candidate = dataset as unknown as Record<string, unknown>;
-    for (const field of ['source', 'fetchedAt', 'updatedAt']) {
+    for (const field of ['source', 'fetchedAt', 'updatedAt', 'sql', 'sqlDialect', 'sourceSql', 'sourceSqlDialect']) {
       if (candidate[field] !== undefined && typeof candidate[field] !== 'string') {
         addDiagnostic(diagnostics, 'error', 'dataset.metadata', `Dataset ${field} must be a string.`, 1, `${path}.${field}`);
       }
@@ -2607,7 +2622,7 @@ function buildHtml(
   const dashboard = mode === 'dashboard';
   const hasEChartsCharts = renderedBody.includes('data-option="');
   const hasG2Charts = renderedBody.includes('data-g2="');
-  const hasChartTabs = renderedBody.includes('class="mdr-chart-tabs"');
+  const hasViewTabs = renderedBody.includes('class="mdr-view-tabs"');
   const hasTables = renderedBody.includes('class="mdr-tabulator"');
   const hasT8 = renderedBody.includes('class="mdr-t8-host"');
   const hasInfographics = renderedBody.includes('class="mdr-infographic-host"');
@@ -2617,7 +2632,7 @@ function buildHtml(
   const runtimeScripts = [
     ...(hasEChartsCharts ? [`<script>${echartsRuntime}</script>`, `<script>${chartBootstrap}</script>`] : []),
     ...(hasG2Charts ? [`<script>${g2Runtime}</script>`, `<script>${g2Bootstrap}</script>`] : []),
-    ...(hasChartTabs ? [`<script>${chartTabsBootstrap}</script>`] : []),
+    ...(hasViewTabs ? [`<script>${viewTabsBootstrap}</script>`] : []),
     ...(hasTables ? [`<script>${tabulatorRuntime}</script>`, `<script>${tableBootstrap}</script>`] : []),
     ...(hasT8 ? [`<script>${t8Runtime}</script>`, `<script>${t8Bootstrap}</script>`] : []),
     ...(hasInfographics ? [`<script>${infographicRuntime}</script>`, `<script>${infographicBootstrap}</script>`] : []),
@@ -2629,7 +2644,7 @@ function buildHtml(
   const allowedHashes = [
     ...(hasEChartsCharts ? chartScriptHashes.split(' ') : []),
     ...(hasG2Charts ? g2ScriptHashes.split(' ') : []),
-    ...(hasChartTabs ? chartTabsScriptHashes.split(' ') : []),
+    ...(hasViewTabs ? viewTabsScriptHashes.split(' ') : []),
     ...(hasTables ? tableScriptHashes.split(' ') : []),
     ...(hasT8 ? t8ScriptHashes.split(' ') : []),
     ...(hasInfographics ? infographicScriptHashes.split(' ') : []),
@@ -2664,7 +2679,7 @@ function buildHtml(
       ${presentation.theme === 'auto' ? '<button type="button" class="mdr-theme-toggle" hidden>切换主题</button>' : ''}
     </header>
     <div class="mdr-report-layout${tocHtml ? '' : ' mdr-report-layout--without-toc'}${railToc ? ' mdr-report-layout--rail' : ''}">
-${tocHtml ? `      ${tocHtml}\n` : ''}      <article class="mdr-content">${renderedBody}</article>
+${tocHtml ? `      ${railToc ? `<div class="mdr-toc-dock">${tocHtml}</div>` : tocHtml}\n` : ''}      <article class="mdr-content">${renderedBody}</article>
     </div>
 ${footer ? `    ${footer}\n` : ''}  </main>
   ${runtimeScripts}
