@@ -32,9 +32,9 @@ description: 根据给定数据规划并创建 md-report/1 仪表盘和分析报
 
 每个业务数字只在文档头的 `metrics` 中声明一次，再从正文、KPI 卡片、图表和表格中引用。这样同一指标不会出现多个数值，读者也能同时看到指标定义。
 
-正文至少有两个 H2–H4 标题时，报告会自动显示可点击目录；仪表盘不显示目录。默认设置 `toc: auto` 会在宽度达到 900 px 时展开目录，在窄屏上折叠目录。使用有描述性的分节标题，方便读者浏览长报告并跳转。
+正文至少有两个 H2–H4 标题时，报告会自动生成可点击目录；仪表盘不显示目录。默认 `toc: rail` 会在内容左上角显示三条短横线，鼠标移入或键盘聚焦时展开为目录浮层，浮层不占正文宽度，点击可固定；需要常驻面板时用 `toc: open`，需要初始折叠的卡片时用 `toc: collapsed`，需要随宽度自动展开时用 `toc: auto`。使用有描述性的分节标题，方便读者浏览长报告并跳转。
 
-对支持的内容使用内置开源渲染器，不要用自定义 HTML 重造语法或视觉效果：`markdown-it-anchor` 和 `markdown-it-toc-done-right` 生成报告标题链接与目录；AntV T8 渲染 `antv-t8` 叙述；Apache ECharts 渲染图表；Tabulator 渲染数据表。Markdown 组件必须使用声明式写法，并符合渲染器支持的输入结构。
+对支持的内容使用内置开源渲染器，不要用自定义 HTML 重造语法或视觉效果：`markdown-it-anchor` 和 `markdown-it-toc-done-right` 生成报告标题链接与目录；AntV T8 渲染 `antv-t8` 叙述；AntV G2 默认渲染基础统计图，Apache ECharts 承接 G2 未覆盖的复杂图表；Tabulator 渲染数据表。Markdown 组件必须使用声明式写法，并符合渲染器支持的输入结构。
 
 渲染前检查每个面板是否回答了明确的问题、图表编码是否适合数据、单位和周期是否可见，以及重复信息是否有明确用途。折线、条形、柱形、面积、漏斗、组合、瀑布和饼图的数据应先聚合，保证每个绘制坐标或分类只有一行。渲染器会拒绝重复坐标，不会静默丢弃观测。数值散点图允许 x 值重复；`boxplot` 会从原始行自行计算分位数。
 
@@ -59,7 +59,7 @@ title: 月度经营复盘
 | `assets` | 映射 | 资源 ID 对应工作区相对图片 `path` 和 `mediaType`。 |
 | `metrics` | 映射 | 命名指标定义；详见“声明指标”。 |
 | `eyebrow`、`deck`、`status`、`footer` | 字符串，最多 200 个字符 | 面向读者的页面信息；为空时省略。`eyebrow` 默认使用内置标签；`status` 显示在仪表盘顶部栏。 |
-| `toc` | `auto`、`open`、`collapsed` | 默认值为 `auto`。 |
+| `toc` | `rail`、`auto`、`open`、`collapsed` | 默认值为 `rail`：左上角三条短横线，悬停或聚焦时展开为浮层，不占正文宽度。 |
 | `theme` | `auto`、`light`、`dark` | 默认值为 `auto`，跟随读者系统设置，并在报告模式显示切换按钮。仪表盘始终使用深色主题。 |
 
 任何其他文档头字段都会报错。只有正文恰好包含一个顶层 `:::: dashboard columns=12` 容器时才使用 `mode: dashboard`。使用 `::: panel span=1` 到 `::: panel span=12` 声明平铺面板，每个面板用 `:::` 结束，整个仪表盘用 `::::` 结束。窄屏上面板会自动纵向堆叠。
@@ -177,13 +177,15 @@ metrics:
 
 用途：展示数值沿某个维度的变化、整体构成，或数据分布形态。
 
-块级字段：`kind`、`dataRef`、`x`、`y`、`series`、`title`、`unit`、`kicker`、`metricRef`、`axisFormat`、`anchor`、`targets`、`bands`、`points`，以及图表类型专用字段 `value`、`name`、`mapName`、`geo`、`open`、`high`、`low`、`close`、`volume`、`source`、`target`、`totalField`、`sort`、`min`、`max`。
+块级字段：`kind`、`dataRef`、`x`、`y`、`series`、`title`、`unit`、`kicker`、`metricRef`、`axisFormat`、`anchor`、`engine`、`targets`、`bands`、`points`，以及图表类型专用字段 `value`、`name`、`mapName`、`geo`、`open`、`high`、`low`、`close`、`volume`、`source`、`target`、`totalField`、`sort`、`min`、`max`。
 
 ```chart
 {"kind":"line","title":"月营收走势（按区域）","dataRef":"monthly_by_region","x":"month","y":"revenue","series":"region","unit":"元","anchor":"revenue-trend"}
 ```
 
 `dataRef` 必填，且 `x` 和 `y` 必须是数据集中的字段。使用 `metricRef` 时，`y` 和 `unit` 会从指标定义读取，不要再声明这两个字段。多系列 `line`/`area` 图表的 `series` 是字段名；`combo` 图表的 `series` 是系列对象数组。`axisFormat` 接受 `format`、`decimals`、`compact`、`currency` 和 `scale`，用于覆盖数值轴格式。
+
+`engine` 可选 `g2`（默认）或 `echarts`。`line`、`bar`、`column`、`area`、`pie`、`scatter` 由 AntV G2 渲染；漏斗、组合、瀑布、K 线等 G2 未覆盖的类型会自动回退到 ECharts，并在图表卡右上角标注实际引擎。图表卡固定提供“图表 / 数据 / SQL”三个视图：数据视图展示绘图所用数据集的行，SQL 视图展示产生该快照的查询；数据集来自 CSV 或内联快照时，SQL 视图会说明没有查询。这样结论、证据和口径可以放在同一个组件里。
 
 | 类型 | 必填字段 | 说明 |
 | --- | --- | --- |
@@ -227,7 +229,7 @@ metrics:
 {"kind":"line","title":"华东占比趋势","dataRef":"monthly_share","x":"month","y":"share_east","unit":"比例","axisFormat":{"format":"percent"},"anchor":"region-concentration","targets":[{"value":0.5,"label":"50% 参考线"}]}
 ```
 
-报告模式下图表容器高度为 250 px；在仪表盘面板中，图表会填满整个面板。
+报告模式下图表容器高度为 250 px（饼图为 300 px）；在仪表盘面板中，图表会填满整个面板。
 
 ### `data-table` — 行级明细
 
@@ -448,7 +450,7 @@ assets:
 
 `drender_validate` 会返回每个数据集物化后的行数和 UTF-8 字节数。数据集达到 4,000 行，或数据集快照总量达到 800,000 字节时会发出警告；硬性上限为每条 SQLite 查询 5,000 行、数据集总量 1,000,000 字节。校验最多返回 500 条诊断。它会收集相互独立的问题，但组件格式错误时可能跳过依赖该组件的检查（例如，图表 JSON 无效时就无法检查字段引用）。
 
-渲染器会拒绝原始 HTML，只允许 `https:`、`http:`、`mailto:` 和文档内锚点链接，并且只嵌入已声明的栅格图片。它不会执行用户 JavaScript 或 SQL。导出的 HTML 包含 CSS 和报告实际需要的图表、表格、Mermaid、T8、Infographic 运行时；交付前，Excalidraw 场景会转换为 SVG。估算文件大小时，可按包含图表时 ECharts 约 1.1 MB、包含数据表时 Tabulator 约 0.5 MB 计算。两者都存在的报告，在加入数据和其他内容前通常约为 1.6–1.7 MB。运行时会内嵌，以保证文档离线可用；隐藏图表控件不会明显降低这个大小下限。收到 HTML 的人都能检查其中嵌入的数据，请勿在报告中放入秘密信息。
+渲染器会拒绝原始 HTML，只允许 `https:`、`http:`、`mailto:` 和文档内锚点链接，并且只嵌入已声明的栅格图片。它不会执行用户 JavaScript 或 SQL。导出的 HTML 包含 CSS 和报告实际需要的图表、表格、Mermaid、T8、Infographic 运行时；交付前，Excalidraw 场景会转换为 SVG。估算文件大小时，可按 AntV G2 约 1.0 MB、ECharts 约 1.1 MB、Tabulator 约 0.5 MB 计算；只包含 G2 基础图表时不会嵌入 ECharts。运行时会内嵌，以保证文档离线可用；隐藏图表控件不会明显降低这个大小下限。收到 HTML 的人都能检查其中嵌入的数据，请勿在报告中放入秘密信息。
 
 ## 渲染流程
 

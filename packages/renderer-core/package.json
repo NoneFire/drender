@@ -18,6 +18,7 @@
     "build": "tsc -b"
   },
   "dependencies": {
+    "@antv/g2": "5.4.8",
     "@antv/infographic": "0.2.20",
     "@antv/t8": "0.3.1",
     "@excalidraw/utils": "0.1.5",

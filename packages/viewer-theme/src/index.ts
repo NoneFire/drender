@@ -107,6 +107,88 @@ a:focus-visible, summary:focus-visible { outline: 3px solid var(--mdr-accent); o
 .mdr-toc li { min-width: 0; margin: 0; padding: 0; }
 .mdr-toc a { display: block; overflow: hidden; padding: 6px 8px; border-radius: 6px; color: var(--mdr-ink-muted); font-size: var(--mdr-text-aux); line-height: 1.45; text-decoration: none; text-overflow: ellipsis; }
 .mdr-toc a:hover { background: var(--mdr-accent-soft); color: var(--mdr-accent); }
+
+/* --- table of contents: top-left grip ----------------------------------- */
+/* No grid column: the grip and its panel float above the reading surface, so
+   the default state never takes width away from the report body. */
+.mdr-report-layout--rail { position: relative; display: block; }
+/* Keep the collapsed grip inside the card's top padding at every width. */
+.mdr-report-layout--rail > .mdr-content { padding-top: max(clamp(24px, 5vw, 60px), 56px); }
+
+.mdr-toc--rail {
+  position: absolute;
+  top: 14px;
+  left: 12px;
+  z-index: 40;
+  width: auto;
+  max-height: none;
+  overflow: visible;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.mdr-toc--rail > summary {
+  position: relative;
+  display: block;
+  width: 30px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: transparent;
+  cursor: pointer;
+  font-size: 0;
+  list-style: none;
+  --mdr-rail-grip: var(--mdr-line-strong);
+  background-image: repeating-linear-gradient(to bottom, var(--mdr-rail-grip) 0 2px, transparent 2px 6px);
+  background-position: center;
+  background-repeat: no-repeat;
+  background-size: 18px 18px;
+  transition: background-color .16s ease, border-color .16s ease;
+}
+.mdr-toc--rail > summary::-webkit-details-marker { display: none; }
+/* The expanded card already has its own "目录" label; the collapsed grip is
+   three short lines, not the icon used by the full TOC card. */
+.mdr-toc--rail > summary::before { content: none; }
+.mdr-toc--rail:hover > summary,
+.mdr-toc--rail[open] > summary {
+  --mdr-rail-grip: var(--mdr-accent);
+  border-color: var(--mdr-line);
+  background-color: var(--mdr-surface-muted);
+}
+.mdr-toc--rail[open] > summary {
+  border-color: var(--mdr-line-strong);
+  background-color: var(--mdr-accent-soft);
+}
+.mdr-toc--rail > nav {
+  position: absolute;
+  top: 34px;
+  left: 0;
+  width: 214px;
+  max-height: min(70vh, 560px);
+  overflow: auto;
+  padding: 10px;
+  border: 1px solid var(--mdr-line);
+  border-radius: 12px;
+  background: var(--mdr-surface);
+  box-shadow: var(--mdr-shadow);
+  opacity: 0;
+  visibility: hidden;
+  transform: translateY(-4px);
+  transition: opacity .16s ease, transform .16s ease, visibility .16s;
+}
+.mdr-toc--rail[open] > nav { opacity: 1; visibility: visible; transform: none; }
+.mdr-toc--rail > nav::before {
+  display: block;
+  padding: 2px 8px 8px;
+  color: var(--mdr-ink-faint);
+  content: "目录";
+  font-size: var(--mdr-text-micro);
+  font-weight: 800;
+  letter-spacing: .14em;
+  text-transform: uppercase;
+}
+
 .mdr-header {
   position: relative;
   overflow: hidden;
@@ -196,6 +278,130 @@ body.mdr-report-page .mdr-content .mdr-chart { margin: 1.25em 0; padding: 14px 0
 .mdr-content .mdr-kpi-change--neutral { color: var(--mdr-ink-muted); }
 .mdr-content .mdr-mermaid-host, .mdr-content .mdr-excalidraw-host { overflow-x: auto; }
 .mdr-content .mdr-echart { width: 100%; height: 250px; min-height: 180px; }
+
+/* --- chart tabs: picture, rows, and query in one card ------------------- */
+.mdr-content .mdr-chart-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: -2px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--mdr-line);
+}
+.mdr-content .mdr-chart-tabs { display: flex; flex-wrap: wrap; align-items: center; gap: 2px; }
+.mdr-content .mdr-chart-tab {
+  padding: 5px 10px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  color: var(--mdr-ink-faint);
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--mdr-text-aux);
+  font-weight: 650;
+  line-height: 1.4;
+}
+.mdr-content .mdr-chart-tab:hover { background: var(--mdr-surface-muted); color: var(--mdr-ink); }
+.mdr-content .mdr-chart-tab[aria-selected="true"] { background: var(--mdr-accent-soft); color: var(--mdr-accent); font-weight: 750; }
+.mdr-content .mdr-chart-tab:focus-visible { outline: 3px solid var(--mdr-accent); outline-offset: 1px; }
+.mdr-content .mdr-chart-engine {
+  margin-left: auto;
+  padding: 2px 8px;
+  border: 1px solid var(--mdr-line);
+  border-radius: 999px;
+  color: var(--mdr-ink-faint);
+  font-size: var(--mdr-text-micro);
+  font-weight: 650;
+  letter-spacing: .04em;
+  white-space: nowrap;
+}
+.mdr-content .mdr-chart-panel { min-width: 0; }
+.mdr-content .mdr-chart-panel[hidden] { display: none !important; }
+.mdr-content .mdr-chart-canvas { width: 100%; height: 250px; min-height: 180px; }
+.mdr-content .mdr-chart-canvas[data-kind="pie"] { height: 300px; }
+.mdr-content .mdr-chart-table-wrap {
+  max-height: 300px;
+  overflow: auto;
+  border: 1px solid var(--mdr-line);
+  border-radius: 8px;
+}
+.mdr-content .mdr-chart-data-table { width: 100%; margin: 0; border-collapse: collapse; font-size: var(--mdr-text-aux); }
+.mdr-content .mdr-chart-data-table th,
+.mdr-content .mdr-chart-data-table td {
+  padding: 7px 10px;
+  border: 0;
+  border-bottom: 1px solid var(--mdr-line);
+  text-align: left;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.mdr-content .mdr-chart-data-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: var(--mdr-surface-muted);
+  font-weight: 750;
+}
+.mdr-content .mdr-chart-data-table tr:nth-child(even) td { background: transparent; }
+.mdr-content .mdr-chart-data-table tr:last-child td { border-bottom: 0; }
+.mdr-content .mdr-chart-sql {
+  overflow: hidden;
+  border: 1px solid var(--mdr-line);
+  border-radius: 8px;
+  background: var(--mdr-code-bg);
+}
+.mdr-content .mdr-chart-sql-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgb(255 255 255 / 10%);
+  color: #a9bfce;
+  font-size: var(--mdr-text-aux);
+}
+.mdr-content .mdr-chart-sql-dialect {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+  border: 1px solid rgb(255 255 255 / 18%);
+  border-radius: 999px;
+  color: #8fd8ca;
+  font-size: var(--mdr-text-micro);
+  font-weight: 750;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+}
+.mdr-content .mdr-chart-sql-source { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mdr-content .mdr-chart-sql-copy {
+  flex: 0 0 auto;
+  margin-left: auto;
+  padding: 3px 8px;
+  border: 1px solid rgb(255 255 255 / 22%);
+  border-radius: 6px;
+  background: transparent;
+  color: #d7e3ea;
+  cursor: pointer;
+  font-family: inherit;
+  font-size: var(--mdr-text-micro);
+  font-weight: 650;
+}
+.mdr-content .mdr-chart-sql-copy:hover { border-color: #8fd8ca; color: #8fd8ca; }
+.mdr-content .mdr-chart-sql-copy:focus-visible { outline: 3px solid #8fd8ca; outline-offset: 1px; }
+.mdr-content .mdr-chart-sql pre {
+  max-height: 300px;
+  margin: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.mdr-content .mdr-chart-tab-empty {
+  padding: 26px 12px;
+  border: 1px dashed var(--mdr-line-strong);
+  border-radius: 8px;
+  color: var(--mdr-ink-faint);
+  font-size: 0.75rem;
+  text-align: center;
+}
+.mdr-content .mdr-chart-tab-empty.mdr-empty { border-style: dashed; }
 .mdr-content .mdr-chart-note { margin: 3px 0 0; color: var(--mdr-ink-faint); font-size: var(--mdr-text-aux); }
 .mdr-content .mdr-table-summary { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 10px; margin: -5px 0 9px; color: var(--mdr-ink-faint); font-size: var(--mdr-text-aux); }
 .mdr-content .mdr-tabulator-host { width: 100%; max-width: 100%; min-height: 160px; overflow: hidden; border: 1px solid var(--mdr-line); border-radius: 8px; background: var(--mdr-surface); }
@@ -394,6 +600,11 @@ body.mdr-dashboard-page .mdr-kpi-meta { margin-top: 5px; color: #8da7b6; }
 body.mdr-dashboard-page .mdr-kpi-change { background: #1b3447; }
 body.mdr-dashboard-page .mdr-chart { display: flex; flex-direction: column; }
 body.mdr-dashboard-page .mdr-echart { flex: 1; height: auto; min-height: 0; }
+body.mdr-dashboard-page .mdr-chart-toolbar { flex: 0 0 auto; }
+body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="chart"] { display: flex; flex: 1; flex-direction: column; min-height: 0; }
+body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="chart"] .mdr-chart-canvas { flex: 1; height: auto; min-height: 0; }
+body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="data"],
+body.mdr-dashboard-page .mdr-chart-panel[data-mdr-chart-panel="sql"] { flex: 1; min-height: 0; overflow: auto; }
 body.mdr-dashboard-page .mdr-chart-note { margin-top: 2px; }
 body.mdr-dashboard-page .mdr-chart .mdr-component-heading { flex: 0 0 auto; }
 body.mdr-dashboard-page .mdr-data-table { display: flex; flex-direction: column; }
@@ -406,6 +617,9 @@ body.mdr-dashboard-page .mdr-footer { display: none; }
   .mdr-report-layout { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .mdr-toc { position: static; max-height: none; }
   .mdr-toc nav { max-height: min(32vh, 240px); }
+  .mdr-report-layout--rail { display: block; }
+  .mdr-toc--rail { position: absolute; top: 10px; left: 8px; }
+  .mdr-toc--rail > nav { width: min(78vw, 240px); max-height: 60vh; }
   .mdr-content .mdr-dashboard { grid-template-columns: repeat(6, minmax(0, 1fr)); }
   .mdr-content .mdr-panel--span-1, .mdr-content .mdr-panel--span-2, .mdr-content .mdr-panel--span-3 { grid-column: span 3; }
   .mdr-content .mdr-panel--span-4, .mdr-content .mdr-panel--span-5, .mdr-content .mdr-panel--span-6,
@@ -439,6 +653,8 @@ body.mdr-dashboard-page .mdr-footer { display: none; }
   .mdr-report-layout { gap: 10px; margin-top: 12px; }
   .mdr-toc > summary { padding: 10px 12px; }
   .mdr-toc nav { max-height: 30vh; padding: 0 8px 8px; }
+  .mdr-toc--rail > summary { padding: 0; }
+  .mdr-toc--rail > nav { padding: 10px; }
   .mdr-header { border-radius: 12px; }
   .mdr-content .mdr-dashboard { grid-template-columns: minmax(0, 1fr); gap: 12px; }
   .mdr-content .mdr-panel { grid-column: 1 / -1; }

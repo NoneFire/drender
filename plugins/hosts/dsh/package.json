@@ -1,6 +1,6 @@
 {
   "name": "@tita-agent/dsh-drender-plugin",
-  "version": "0.1.5",
+  "version": "0.2.0",
   "description": "DeepSeek Harness 插件：校验 md-report/1 数据报告、读取只读 SQLite、生成交互式离线 HTML，并提供 drender-report Skill。",
   "type": "module",
   "engines": {
@@ -37,6 +37,7 @@
     }
   },
   "dependencies": {
+    "@antv/g2": "5.4.8",
     "@antv/infographic": "0.2.20",
     "@antv/t8": "0.3.1",
     "@excalidraw/utils": "0.1.5",

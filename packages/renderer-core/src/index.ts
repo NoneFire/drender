@@ -10,8 +10,10 @@ import { DOMParser, parseHTML } from 'linkedom';
 import { isAlias, parseDocument } from 'yaml';
 import { viewerThemeCss } from '@tita-agent/viewer-theme';
 import {
+  CHART_ENGINES,
   CHART_KINDS,
   COMPARISON_KINDS,
+  G2_CHART_KINDS,
   JSON_COMPONENT_LANGUAGES,
   isMetricFormat,
   METRIC_FORMATS,
@@ -31,7 +33,7 @@ import {
 } from './components.js';
 
 export { datasetRecords };
-export { COMPONENT_LANGUAGES, CHART_KINDS, formatMetricValue, type MetricSpec, type MetricRegistry } from './components.js';
+export { COMPONENT_LANGUAGES, CHART_ENGINES, CHART_KINDS, G2_CHART_KINDS, formatMetricValue, type MetricSpec, type MetricRegistry } from './components.js';
 
 const require = createRequire(import.meta.url);
 const echartsRuntime = readFileSync(require.resolve('echarts/dist/echarts.min'), 'utf8');
@@ -41,6 +43,12 @@ const tabulatorRuntimeSource = readFileSync(tabulatorRuntimePath, 'utf8').replac
 const tabulatorLicense = readFileSync(resolve(tabulatorPackagePath, 'LICENSE'), 'utf8');
 const tabulatorRuntime = `/*! Tabulator Tables MIT license\n${tabulatorLicense.replace(/\*\//g, '* /')}\n*/\n${tabulatorRuntimeSource}`;
 const tabulatorCss = readFileSync(require.resolve('tabulator-tables/dist/css/tabulator.min.css'), 'utf8').replace(/\/\*# sourceMappingURL=.*?\*\//g, '');
+const g2PackagePath = dirname(require.resolve('@antv/g2/package.json'));
+const g2RuntimeSource = readFileSync(resolve(g2PackagePath, 'dist/g2.min.js'), 'utf8')
+  .replace(/\n?\/\/# sourceMappingURL=.*$/m, '')
+  .replace(/[\t ]+$/gm, '');
+const g2License = readFileSync(resolve(g2PackagePath, 'LICENSE'), 'utf8');
+const g2Runtime = `/*! AntV G2 MIT license\n${g2License.replace(/\*\//g, '* /')}\n*/\n${g2RuntimeSource}`;
 const t8RuntimePath = require.resolve('@antv/t8/dist/t8.min.js');
 const t8PackagePath = resolve(dirname(t8RuntimePath), '..');
 const t8RuntimeSource = readFileSync(t8RuntimePath, 'utf8').replace(/\n?\/\/# sourceMappingURL=.*$/m, '');
@@ -406,6 +414,195 @@ const chartBootstrap = String.raw`(() => {
   window.addEventListener('resize', () => charts.forEach((chart) => chart.resize()), { passive: true });
   window.addEventListener('beforeprint', () => charts.forEach((chart) => chart.resize()));
 })();`;
+const g2Bootstrap = String.raw`(() => {
+  const library = window.G2;
+  if (!library?.Chart) return;
+  const root = document.documentElement;
+  const dashboard = document.body.classList.contains('mdr-dashboard-page');
+  const prefersDark = () => root.dataset.theme === 'dark'
+    || (root.dataset.theme !== 'light' && matchMedia('(prefers-color-scheme: dark)').matches);
+  const dark = dashboard || prefersDark();
+  const css = (name, fallback) => {
+    const value = getComputedStyle(root).getPropertyValue(name).trim();
+    return value || fallback;
+  };
+  const fontScale = (Number.parseFloat(getComputedStyle(root).fontSize) || 16) / 16;
+  const palette = dark
+    ? ['#58d6bd', '#67a8ff', '#f7b955', '#bd8cff', '#66d89a', '#ff8478', '#52c9d5']
+    : ['#126a62', '#5479a6', '#c88637', '#9a6bb1', '#4d906d', '#c05c54', '#4e9caa'];
+  const sentinels = {
+    '__mdr_g2_accent__': palette[0],
+    '__mdr_g2_surface__': css('--mdr-surface', '#ffffff'),
+    '__mdr_ink_faint__': css('--mdr-ink-faint', '#7b8996'),
+    '__mdr_ink_muted__': css('--mdr-ink-muted', '#586979'),
+    '__mdr_line__': css('--mdr-line', '#e2e8ee'),
+  };
+  const formatNumber = (value, spec) => {
+    if (value === null || value === undefined || value === '') return '';
+    const raw = Number(value);
+    if (!Number.isFinite(raw)) return String(value);
+    const scale = Number(spec?.scale) || 1;
+    const scaled = raw * scale;
+    const format = spec?.format || 'number';
+    const decimals = spec?.decimals !== undefined
+      ? spec.decimals
+      : format === 'percent' || format === 'percentage-points' ? 1
+        : format === 'currency' ? (spec?.compact ? 1 : 0)
+          : spec?.compact ? 1 : Number.isInteger(scaled) ? 0 : 2;
+    const options = { notation: spec?.compact ? 'compact' : 'standard', maximumFractionDigits: decimals, minimumFractionDigits: 0 };
+    if (format === 'percent' || format === 'percentage-points') {
+      return new Intl.NumberFormat('zh-CN', options).format(scaled * 100) + (format === 'percent' ? '%' : 'pp');
+    }
+    if (format === 'currency') {
+      const currency = spec?.currency || 'CNY';
+      try { return new Intl.NumberFormat('zh-CN', { ...options, style: 'currency', currency }).format(scaled); }
+      catch { return new Intl.NumberFormat('zh-CN', options).format(scaled) + ' ' + currency; }
+    }
+    if (format === 'ratio' || format === 'date' || format === 'text') return format === 'ratio' ? new Intl.NumberFormat('zh-CN', options).format(scaled) : String(value);
+    return new Intl.NumberFormat('zh-CN', options).format(scaled);
+  };
+  const resolve = (node) => {
+    if (typeof node === 'string') {
+      if (node === '__mdr_g2_palette__') return palette.slice();
+      return sentinels[node] || node;
+    }
+    if (Array.isArray(node)) {
+      if (node.length === 1 && node[0] === '__mdr_g2_palette__') return palette.slice();
+      return node.map(resolve);
+    }
+    if (node && typeof node === 'object') {
+      const output = {};
+      for (const key of Object.keys(node)) output[key] = resolve(node[key]);
+      return output;
+    }
+    return node;
+  };
+  // JSON cannot carry functions, so formatter specs ride along as mdrFormat and
+  // become the callbacks G2 expects right before the chart is configured.
+  const prepare = (node) => {
+    if (!node || typeof node !== 'object') return;
+    if (node.mdrFormat) {
+      const spec = node.mdrFormat;
+      delete node.mdrFormat;
+      if (node.labelFormatter === undefined) node.labelFormatter = (value) => formatNumber(value, spec);
+      if (node.valueFormatter === undefined) node.valueFormatter = (value) => formatNumber(value, spec);
+    }
+    for (const value of Object.values(node)) prepare(value);
+  };
+  const scaleFonts = (node) => {
+    if (!node || typeof node !== 'object') return;
+    for (const key of Object.keys(node)) {
+      const value = node[key];
+      if (typeof value === 'number' && /FontSize$/.test(key)) node[key] = Math.round(value * fontScale);
+      else scaleFonts(value);
+    }
+  };
+  const charts = [];
+  document.querySelectorAll('.mdr-chart-canvas[data-g2]').forEach((element) => {
+    const fail = (error) => {
+      const fallback = document.createElement('pre');
+      fallback.className = 'mdr-component-error';
+      fallback.textContent = '图表渲染失败：' + (error && error.message ? error.message : String(error));
+      element.replaceChildren(fallback);
+      console.error('md-report: G2 rendering failed for', element.id || '(chart)', error);
+    };
+    let spec;
+    try { spec = JSON.parse(element.dataset.g2 || '{}'); } catch (error) { fail(error); return; }
+    spec = resolve(spec);
+    prepare(spec);
+    scaleFonts(spec);
+    // Pie labels need the total to say "内容渠道 35.4%", which JSON cannot express.
+    if (spec.coordinate && spec.coordinate.type === 'theta' && Array.isArray(spec.labels) && Array.isArray(spec.data)) {
+      const total = spec.data.reduce((sum, row) => sum + (Number(row.value) || 0), 0);
+      for (const label of spec.labels) {
+        if (!label || label.mdrLabel !== 'share') continue;
+        label.text = (datum) => datum.name + ' ' + (total ? ((Number(datum.value) / total) * 100).toFixed(1) : '0.0') + '%';
+        delete label.mdrLabel;
+      }
+    }
+    // Outside labels need room that a dashboard panel does not have; the legend
+    // and the tooltip still carry the category names.
+    if (spec.coordinate && spec.coordinate.type === 'theta' && (element.clientWidth < 640 || element.clientHeight < 280)) {
+      delete spec.labels;
+    }
+    try {
+      const chart = new library.Chart({ container: element, autoFit: true, theme: dark ? 'classicDark' : 'classic' });
+      chart.options(spec);
+      const rendering = chart.render();
+      if (rendering && typeof rendering.catch === 'function') rendering.catch(fail);
+      charts.push(chart);
+    } catch (error) {
+      fail(error);
+    }
+  });
+  let resizeFrame = 0;
+  const resize = () => {
+    if (typeof cancelAnimationFrame === 'function') cancelAnimationFrame(resizeFrame);
+    resizeFrame = requestAnimationFrame(() => {
+      for (const chart of charts) {
+        try { chart.forceFit?.(); } catch (error) { /* the chart may already be disposed */ }
+      }
+    });
+  };
+  window.addEventListener('resize', resize, { passive: true });
+  window.addEventListener('beforeprint', resize);
+})();`;
+const chartTabsBootstrap = String.raw`(() => {
+  const sections = document.querySelectorAll('.mdr-chart');
+  sections.forEach((section) => {
+    const tabs = Array.from(section.querySelectorAll('[data-mdr-chart-tab]'));
+    if (tabs.length === 0) return;
+    const panels = new Map(Array.from(section.querySelectorAll('[data-mdr-chart-panel]'))
+      .map((panel) => [panel.getAttribute('data-mdr-chart-panel'), panel]));
+    const select = (name, focusTab) => {
+      tabs.forEach((tab) => {
+        const active = tab.getAttribute('data-mdr-chart-tab') === name;
+        tab.setAttribute('aria-selected', active ? 'true' : 'false');
+        tab.tabIndex = active ? 0 : -1;
+        if (active && focusTab) tab.focus();
+      });
+      panels.forEach((panel, key) => { panel.hidden = key !== name; });
+      // A chart initialized while its panel was visible still needs a size refresh
+      // after the reader comes back from Data or SQL.
+      if (name === 'chart') window.dispatchEvent(new Event('resize'));
+    };
+    tabs.forEach((tab, index) => {
+      tab.addEventListener('click', () => select(tab.getAttribute('data-mdr-chart-tab')));
+      tab.addEventListener('keydown', (event) => {
+        const steps = { ArrowRight: 1, ArrowLeft: -1, Home: -index, End: tabs.length - 1 - index };
+        if (!(event.key in steps)) return;
+        event.preventDefault();
+        const next = tabs[(index + steps[event.key] + tabs.length) % tabs.length];
+        select(next.getAttribute('data-mdr-chart-tab'), true);
+      });
+    });
+    section.querySelectorAll('[data-mdr-copy-sql]').forEach((button) => {
+      button.addEventListener('click', async () => {
+        const code = section.querySelector('[data-mdr-chart-panel="sql"] code');
+        if (!code) return;
+        const text = code.textContent || '';
+        try {
+          if (navigator.clipboard?.writeText) await navigator.clipboard.writeText(text);
+          else throw new Error('clipboard unavailable');
+          button.textContent = '已复制';
+        } catch (error) {
+          const selection = window.getSelection();
+          if (selection) {
+            const range = document.createRange();
+            range.selectNodeContents(code);
+            selection.removeAllRanges();
+            selection.addRange(range);
+          }
+          let copied = false;
+          try { copied = document.execCommand('copy'); } catch (copyError) { copied = false; }
+          button.textContent = copied ? '已复制' : '请手动复制';
+        }
+        setTimeout(() => { button.textContent = '复制 SQL'; }, 1800);
+      });
+    });
+  });
+})();`;
+
 const tableBootstrap = String.raw`(() => {
   if (!window.Tabulator) return;
   const formatValue = (value, format) => {
@@ -540,6 +737,42 @@ const tocBootstrap = String.raw`(() => {
   sync();
   if (wide.addEventListener) wide.addEventListener('change', sync);
 })();`;
+const railTocBootstrap = String.raw`(() => {
+  const toc = document.querySelector('details.mdr-toc[data-mdr-toc="rail"]');
+  if (!toc) return;
+  const summary = toc.querySelector('summary');
+  if (!summary) return;
+  let pinned = false;
+  let hovering = false;
+  const focused = () => toc.contains(document.activeElement);
+  const sync = () => { toc.open = pinned || hovering || focused(); };
+  toc.addEventListener('pointerenter', () => { hovering = true; sync(); });
+  toc.addEventListener('pointerleave', () => { hovering = false; sync(); });
+  toc.addEventListener('focusin', sync);
+  toc.addEventListener('focusout', () => setTimeout(sync, 0));
+  summary.addEventListener('click', (event) => {
+    // The rail is a hover affordance, not a permanent card: a click pins it open.
+    event.preventDefault();
+    pinned = !pinned;
+    sync();
+  });
+  document.addEventListener('click', (event) => {
+    if (pinned && !toc.contains(event.target)) {
+      pinned = false;
+      sync();
+    }
+  });
+  document.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape' && toc.open) {
+      pinned = false;
+      hovering = false;
+      toc.open = false;
+      // Focusing anything inside would immediately reopen the panel via focusin.
+      const active = document.activeElement;
+      if (active && typeof active.blur === 'function') active.blur();
+    }
+  });
+})();`;
 const themeBootstrap = String.raw`(() => {
   const button = document.querySelector('.mdr-theme-toggle');
   if (!button) return;
@@ -568,11 +801,14 @@ const hashesFor = (sources: readonly string[]): string => sources
   .map((source) => `'sha256-${createHash('sha256').update(source).digest('base64')}'`)
   .join(' ');
 const chartScriptHashes = hashesFor([echartsRuntime, chartBootstrap]);
+const g2ScriptHashes = hashesFor([g2Runtime, g2Bootstrap]);
+const chartTabsScriptHashes = hashesFor([chartTabsBootstrap]);
 const tableScriptHashes = hashesFor([tabulatorRuntime, tableBootstrap]);
 const t8ScriptHashes = hashesFor([t8Runtime, t8Bootstrap]);
 const infographicScriptHashes = hashesFor([infographicRuntime, infographicBootstrap]);
 const mermaidScriptHashes = hashesFor([mermaidRuntime, mermaidBootstrap]);
 const tocScriptHashes = hashesFor([tocBootstrap]);
+const railTocScriptHashes = hashesFor([railTocBootstrap]);
 const themeScriptHashes = hashesFor([themeBootstrap]);
 
 export const REPORT_FORMAT = 'md-report/1' as const;
@@ -612,6 +848,10 @@ export interface ReportDataset {
   fetchedAt?: string;
   /** Latest business/data date represented by this snapshot. */
   updatedAt?: string;
+  /** SQL text that produced this snapshot, when a host ran a query for it. */
+  sql?: string;
+  /** SQL dialect for `sql`; rendered for the reader, never executed from the document. */
+  sqlDialect?: string;
 }
 
 export type SqliteParameter = string | number | boolean | null;
@@ -698,8 +938,12 @@ export interface ReportPresentation {
   deck: string;
   status: string;
   footer: string;
-  /** Initial table-of-contents state. `auto` expands on desktop and collapses on narrow screens. */
-  toc: 'auto' | 'open' | 'collapsed';
+  /**
+   * Initial table-of-contents state. `rail` keeps a thin line on the left that
+   * expands on hover/focus, `auto` expands on desktop, `open`/`collapsed` pin
+   * the card. `rail` is the default.
+   */
+  toc: 'rail' | 'auto' | 'open' | 'collapsed';
   /** Colour scheme. `auto` follows the reader's system and shows an in-page toggle. */
   theme: 'auto' | 'light' | 'dark';
 }
@@ -724,7 +968,7 @@ const DEFAULT_PRESENTATION: ReportPresentation = {
   deck: '',
   status: '',
   footer: '',
-  toc: 'auto',
+  toc: 'rail',
   theme: 'auto',
 };
 const DEFAULT_EYEBROW: Record<ReportMode, string> = { report: 'Markdown Report', dashboard: 'OPERATIONS DASHBOARD' };
@@ -860,7 +1104,7 @@ function validateSqliteSourceConfig(value: unknown, diagnostics: Diagnostic[]): 
         if (item.maxRows !== undefined && (!Number.isInteger(item.maxRows) || Number(item.maxRows) < 1 || Number(item.maxRows) > 5000)) {
           addDiagnostic(diagnostics, 'error', 'sqlite.max-rows', 'SQLite dataset maxRows must be an integer from 1 to 5000.', 1, `${itemPath}.maxRows`);
         }
-        for (const field of ['source', 'fetchedAt', 'updatedAt']) {
+        for (const field of ['source', 'fetchedAt', 'updatedAt', 'sql', 'sqlDialect']) {
           if (item[field] !== undefined && typeof item[field] !== 'string') {
             addDiagnostic(diagnostics, 'error', 'sqlite.metadata', `SQLite dataset ${field} must be a string.`, 1, `${itemPath}.${field}`);
           }
@@ -1076,8 +1320,8 @@ function validatePresentationConfig(values: Record<string, unknown>, diagnostics
     presentation[key] = value;
   }
   if (values.toc !== undefined) {
-    if (values.toc !== 'auto' && values.toc !== 'open' && values.toc !== 'collapsed') {
-      addDiagnostic(diagnostics, 'error', 'frontmatter.toc', 'toc must be auto, open, or collapsed.', frontmatterLine, '$.frontmatter.toc');
+    if (values.toc !== 'rail' && values.toc !== 'auto' && values.toc !== 'open' && values.toc !== 'collapsed') {
+      addDiagnostic(diagnostics, 'error', 'frontmatter.toc', 'toc must be rail, auto, open, or collapsed.', frontmatterLine, '$.frontmatter.toc');
     } else {
       presentation.toc = values.toc;
     }
@@ -1562,7 +1806,7 @@ const COMPONENT_KEYS: Record<string, readonly string[]> = {
   ],
   chart: [
     'kind', 'dataRef', 'x', 'y', 'series', 'title', 'unit', 'kicker', 'metricRef', 'axisFormat', 'anchor',
-    'targets', 'bands', 'points',
+    'engine', 'targets', 'bands', 'points',
     'value', 'name', 'mapName', 'geo',
     'open', 'high', 'low', 'close', 'volume',
     'source', 'target',
@@ -2017,6 +2261,18 @@ function validateComponents(document: ReportDocument, parsed: ParsedReport | und
           addDiagnostic(diagnostics, 'error', 'component.chart-kind', `Chart kind must be one of ${CHART_KINDS.join(', ')}.`, line, '$.markdown');
           continue;
         }
+        if (spec?.engine !== undefined && !CHART_ENGINES.includes(spec.engine as never)) {
+          addDiagnostic(diagnostics, 'error', 'component.chart-engine', `Chart engine must be one of ${CHART_ENGINES.join(', ')}.`, line, '$.markdown.engine');
+        } else if (spec?.engine === 'g2' && !G2_CHART_KINDS.includes(kind as never)) {
+          addDiagnostic(
+            diagnostics,
+            'warning',
+            'component.chart-engine-fallback',
+            `AntV G2 does not cover the "${kind}" chart here; this chart will fall back to ECharts.`,
+            line,
+            '$.markdown.engine',
+          );
+        }
         const metricRef = typeof spec?.metricRef === 'string' ? spec.metricRef : '';
         const chartMetric = metricRef ? metrics[metricRef] : undefined;
         if (metricRef && !chartMetric) {
@@ -2349,28 +2605,37 @@ function buildHtml(
   presentation: ReportPresentation,
 ): string {
   const dashboard = mode === 'dashboard';
-  const hasCharts = renderedBody.includes('class="mdr-echart"');
+  const hasEChartsCharts = renderedBody.includes('data-option="');
+  const hasG2Charts = renderedBody.includes('data-g2="');
+  const hasChartTabs = renderedBody.includes('class="mdr-chart-tabs"');
   const hasTables = renderedBody.includes('class="mdr-tabulator"');
   const hasT8 = renderedBody.includes('class="mdr-t8-host"');
   const hasInfographics = renderedBody.includes('class="mdr-infographic-host"');
   const hasMermaid = renderedBody.includes('class="mdr-mermaid-host"');
   const autoToc = Boolean(tocHtml) && presentation.toc === 'auto';
+  const railToc = Boolean(tocHtml) && presentation.toc === 'rail';
   const runtimeScripts = [
-    ...(hasCharts ? [`<script>${echartsRuntime}</script>`, `<script>${chartBootstrap}</script>`] : []),
+    ...(hasEChartsCharts ? [`<script>${echartsRuntime}</script>`, `<script>${chartBootstrap}</script>`] : []),
+    ...(hasG2Charts ? [`<script>${g2Runtime}</script>`, `<script>${g2Bootstrap}</script>`] : []),
+    ...(hasChartTabs ? [`<script>${chartTabsBootstrap}</script>`] : []),
     ...(hasTables ? [`<script>${tabulatorRuntime}</script>`, `<script>${tableBootstrap}</script>`] : []),
     ...(hasT8 ? [`<script>${t8Runtime}</script>`, `<script>${t8Bootstrap}</script>`] : []),
     ...(hasInfographics ? [`<script>${infographicRuntime}</script>`, `<script>${infographicBootstrap}</script>`] : []),
     ...(hasMermaid ? [`<script>${mermaidRuntime}</script>`, `<script>${mermaidBootstrap}</script>`] : []),
     ...(autoToc ? [`<script>${tocBootstrap}</script>`] : []),
+    ...(railToc ? [`<script>${railTocBootstrap}</script>`] : []),
     ...(!dashboard ? [`<script>${themeBootstrap}</script>`] : []),
   ].join('\n  ');
   const allowedHashes = [
-    ...(hasCharts ? chartScriptHashes.split(' ') : []),
+    ...(hasEChartsCharts ? chartScriptHashes.split(' ') : []),
+    ...(hasG2Charts ? g2ScriptHashes.split(' ') : []),
+    ...(hasChartTabs ? chartTabsScriptHashes.split(' ') : []),
     ...(hasTables ? tableScriptHashes.split(' ') : []),
     ...(hasT8 ? t8ScriptHashes.split(' ') : []),
     ...(hasInfographics ? infographicScriptHashes.split(' ') : []),
     ...(hasMermaid ? mermaidScriptHashes.split(' ') : []),
     ...(autoToc ? tocScriptHashes.split(' ') : []),
+    ...(railToc ? railTocScriptHashes.split(' ') : []),
     ...(!dashboard ? themeScriptHashes.split(' ') : []),
   ];
   const scriptPolicy = allowedHashes.length ? allowedHashes.join(' ') : "'none'";
@@ -2398,7 +2663,7 @@ function buildHtml(
       ${deck}
       ${presentation.theme === 'auto' ? '<button type="button" class="mdr-theme-toggle" hidden>切换主题</button>' : ''}
     </header>
-    <div class="mdr-report-layout${tocHtml ? '' : ' mdr-report-layout--without-toc'}">
+    <div class="mdr-report-layout${tocHtml ? '' : ' mdr-report-layout--without-toc'}${railToc ? ' mdr-report-layout--rail' : ''}">
 ${tocHtml ? `      ${tocHtml}\n` : ''}      <article class="mdr-content">${renderedBody}</article>
     </div>
 ${footer ? `    ${footer}\n` : ''}  </main>
@@ -2443,8 +2708,9 @@ export async function renderReport(document: ReportDocument, options: RenderOpti
   const generatedTocPattern = /<nav class="mdr-toc-nav">[\s\S]*?<\/nav>/;
   const generatedToc = generatedTocPattern.exec(withGeneratedToc)?.[0] ?? '';
   const tocState = parsed.presentation.toc;
+  const railToc = tocState === 'rail';
   const tocHtml = parsed.mode === 'report' && tocHeadings.length >= 2 && generatedToc
-    ? `<details class="mdr-toc" data-mdr-toc="${tocState}"${tocState === 'collapsed' ? '' : ' open'}>\n  <summary>目录</summary>\n  ${generatedToc}\n</details>`
+    ? `<details class="mdr-toc${railToc ? ' mdr-toc--rail' : ''}" data-mdr-toc="${tocState}"${tocState === 'collapsed' || railToc ? '' : ' open'}>\n  <summary${railToc ? ' title="目录"' : ''}>目录</summary>\n  ${generatedToc}\n</details>`
     : '';
   const renderedBody = await renderExcalidrawHosts(withGeneratedToc.replace(generatedTocPattern, ''));
   const html = buildHtml(parsed.title, parsed.mode, renderedBody, tocHtml, fontSize, parsed.presentation);

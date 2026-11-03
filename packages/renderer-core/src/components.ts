@@ -10,6 +10,10 @@ export interface ComponentDataset {
   source?: string;
   fetchedAt?: string;
   updatedAt?: string;
+  /** SQL text that produced this snapshot, when the host ran a query. */
+  sql?: string;
+  /** Dialect for `sql`; only SQLite is executed by this renderer's data sources. */
+  sqlDialect?: string;
 }
 
 export type ComponentDatasets = Record<string, ComponentDataset>;
@@ -415,6 +419,10 @@ function chartValueFormat(spec: JsonObject, metric: MetricSpec | undefined): Jso
 const CARTESIAN_KINDS = ['line', 'bar', 'column', 'area', 'scatter'] as const;
 const SPECIAL_CHART_KINDS = ['funnel', 'combo', 'waterfall', 'candlestick', 'boxplot', 'heatmap', 'sankey', 'treemap', 'radar', 'gauge', 'map'] as const;
 export const CHART_KINDS: readonly string[] = [...CARTESIAN_KINDS, 'pie', ...SPECIAL_CHART_KINDS];
+/** Kinds AntV G2 renders natively here. Everything else stays on the ECharts runtime. */
+export const G2_CHART_KINDS = ['line', 'bar', 'column', 'area', 'pie', 'scatter'] as const;
+export const CHART_ENGINES = ['g2', 'echarts'] as const;
+export type ChartEngine = (typeof CHART_ENGINES)[number];
 
 interface ChartContext {
   spec: JsonObject;
@@ -833,6 +841,168 @@ function axisFormat(entry: JsonObject | undefined): JsonObject | undefined {
   return { format, ...(number(entry.decimals) === undefined ? {} : { decimals: number(entry.decimals) }), ...(entry.compact === true ? { compact: true } : {}) };
 }
 
+/** Placeholders the browser-side G2 bootstrap replaces with theme-aware values. */
+const G2_PALETTE = '__mdr_g2_palette__';
+const G2_ACCENT = '__mdr_g2_accent__';
+const G2_SURFACE = '__mdr_g2_surface__';
+const G2_INK_FAINT = '__mdr_ink_faint__';
+const G2_INK_MUTED = '__mdr_ink_muted__';
+const G2_LINE = '__mdr_line__';
+const CHART_DATA_ROW_LIMIT = 200;
+
+/** AntV G2 spec for the chart kinds its grammar covers directly. */
+function buildG2Chart(kind: string, context: ChartContext): JsonObject | undefined {
+  const { spec, rows, valueFormat } = context;
+  const xField = fieldOf(spec, 'x');
+  const yField = fieldOf(spec, 'y') || fieldOf(spec, 'value') || (typeof spec.y === 'string' ? spec.y : '');
+  const seriesField = fieldOf(spec, 'series');
+  const axis = (grid: boolean): JsonObject => ({
+    title: false,
+    line: false,
+    tick: false,
+    labelFill: G2_INK_FAINT,
+    labelOpacity: 1,
+    labelFontSize: 11,
+    labelAutoHide: true,
+    ...(grid ? { grid: true, gridStroke: G2_LINE, gridLineDash: [3, 3], gridStrokeOpacity: 0.75 } : {}),
+  });
+
+  if (kind === 'pie') {
+    const data = rows.flatMap((row) => {
+      const value = number(row[yField]);
+      return value === undefined ? [] : [{ name: String(row[xField] ?? ''), value }];
+    });
+    if (!data.length) return undefined;
+    return {
+      type: 'interval',
+      data,
+      encode: { y: 'value', color: 'name' },
+      transform: [{ type: 'stackY' }],
+      coordinate: { type: 'theta', innerRadius: 0.56, outerRadius: 0.88 },
+      scale: { color: { range: [G2_PALETTE] } },
+      legend: {
+        color: {
+          position: 'bottom',
+          layout: { justifyContent: 'center' },
+          itemLabelFill: G2_INK_MUTED,
+          itemLabelFontSize: 11,
+          itemMarkerSize: 8,
+        },
+      },
+      ...(data.length <= 6 ? {
+        labels: [{ mdrLabel: 'share', position: 'outside', fontSize: 11, fill: G2_INK_MUTED }],
+      } : {}),
+      style: { stroke: G2_SURFACE, lineWidth: 2, radius: 4 },
+      tooltip: { items: [{ channel: 'y', mdrFormat: valueFormat }] },
+    };
+  }
+
+  const flat = rows.flatMap((row) => {
+    const y = number(row[yField]);
+    if (y === undefined) return [];
+    const rawX = row[xField];
+    const numericX = number(rawX);
+    return [{
+      x: kind === 'scatter' && numericX !== undefined ? numericX : String(rawX ?? ''),
+      y,
+      ...(seriesField ? { series: String(row[seriesField] ?? '总计') } : {}),
+    }];
+  });
+  if (!flat.length) return undefined;
+  const seriesNames = [...new Set(flat.map((point) => String(point.series ?? '')))];
+  const multiSeries = Boolean(seriesField) && seriesNames.length > 1;
+  const mark = kind === 'scatter' ? 'point' : kind === 'area' ? 'area' : kind === 'line' ? 'line' : 'interval';
+  const style: JsonObject = mark === 'interval'
+    ? { radiusTopLeft: 4, radiusTopRight: 4, maxWidth: 34, fill: seriesField ? undefined : G2_ACCENT }
+    : mark === 'area'
+      ? { fillOpacity: 0.18, fill: seriesField ? undefined : G2_ACCENT }
+      : mark === 'point'
+        ? { fillOpacity: 0.82, fill: seriesField ? undefined : G2_ACCENT }
+        : { lineWidth: 2, stroke: seriesField ? undefined : G2_ACCENT };
+  if (seriesField) delete style.fill;
+  if (seriesField && mark !== 'point') delete style.stroke;
+  return {
+    type: mark,
+    data: flat,
+    encode: { x: 'x', y: 'y', ...(seriesField ? { color: 'series' } : {}) },
+    ...(mark === 'interval' && multiSeries ? { transform: [{ type: 'dodgeX' }] } : {}),
+    ...(mark === 'line' || mark === 'area' ? { shapeField: 'smooth' } : {}),
+    scale: {
+      y: { nice: true },
+      ...(seriesField ? { color: { range: [G2_PALETTE] } } : {}),
+    },
+    axis: {
+      x: { ...axis(false), labelAutoHide: true, labelAutoRotate: false },
+      y: { ...axis(true), mdrFormat: valueFormat },
+    },
+    ...(seriesField ? {
+      legend: {
+        color: {
+          position: 'top',
+          layout: { justifyContent: 'flex-start' },
+          itemLabelFill: G2_INK_MUTED,
+          itemLabelFontSize: 11,
+          itemMarkerSize: 8,
+        },
+      },
+    } : {}),
+    style,
+    tooltip: { items: [{ channel: 'y', mdrFormat: valueFormat }] },
+  };
+}
+
+/** Dataset rows as an inspectable table. This is the evidence behind the picture. */
+function renderChartDataPanel(dataset: ComponentDataset, rows: RecordRow[], title: string): string {
+  if (!rows.length) return '<div class="mdr-chart-tab-empty">该数据集没有可用于展示的行。</div>';
+  const declared = Array.isArray(dataset.columns) ? dataset.columns.map((column) => column.name) : [];
+  const columns = declared.length ? declared : Object.keys(rows[0] ?? {});
+  const shown = rows.slice(0, CHART_DATA_ROW_LIMIT);
+  const head = columns.map((column) => `<th scope="col">${escape(column)}</th>`).join('');
+  const body = shown.map((row) => `<tr>${columns.map((column) => {
+    const value = row[column];
+    return `<td>${value === null || value === undefined || value === '' ? '—' : escape(value)}</td>`;
+  }).join('')}</tr>`).join('');
+  const note = rows.length > shown.length
+    ? `共 ${rows.length.toLocaleString('zh-CN')} 行，此处显示前 ${CHART_DATA_ROW_LIMIT} 行`
+    : `共 ${rows.length.toLocaleString('zh-CN')} 行`;
+  const source = typeof dataset.source === 'string' && dataset.source.trim()
+    ? ` · ${dataset.source.replace(/^\s*来源\s*/, '')}`
+    : '';
+  return `<div class="mdr-chart-table-wrap" role="region" aria-label="${escape(title)} 数据" tabindex="0"><table class="mdr-chart-data-table"><thead><tr>${head}</tr></thead><tbody>${body}</tbody></table></div><p class="mdr-chart-note">${escape(note)}${escape(source)}</p>`;
+}
+
+/** SQL that produced the dataset, formatted for reading; CSV and inline snapshots have none. */
+function renderChartSqlPanel(dataset: ComponentDataset, datasetName: string): string {
+  if (typeof dataset.sql !== 'string' || !dataset.sql.trim()) {
+    return `<div class="mdr-chart-tab-empty">数据集 <code>${escape(datasetName)}</code> 来自 CSV 或内联快照，没有对应的 SQL 查询。</div>`;
+  }
+  const dialect = typeof dataset.sqlDialect === 'string' && dataset.sqlDialect.trim() ? dataset.sqlDialect.trim() : 'sqlite';
+  let formatted = dataset.sql;
+  try {
+    formatted = formatSql(dataset.sql, { language: dialect as 'sql' | 'postgresql' | 'mysql' | 'bigquery' | 'duckdb' | 'sqlite', tabWidth: 2 });
+  } catch {
+    // Keep the author's query intact when the formatter does not support a construct.
+  }
+  const source = typeof dataset.source === 'string' && dataset.source.trim() ? dataset.source.trim() : datasetName;
+  return `<div class="mdr-chart-sql"><div class="mdr-chart-sql-head"><span class="mdr-chart-sql-dialect">${escape(dialect)}</span><span class="mdr-chart-sql-source">${escape(source)}</span><button type="button" class="mdr-chart-sql-copy" data-mdr-copy-sql>复制 SQL</button></div><pre><code class="language-sql">${escape(formatted)}</code></pre></div>`;
+}
+
+/** Chart / data / SQL tabs: one place for the picture, the rows behind it, and the query. */
+function renderChartFrame(
+  chartId: string,
+  engine: ChartEngine,
+  title: string,
+  canvas: string,
+  dataPanel: string,
+  sqlPanel: string,
+): string {
+  const tab = (name: 'chart' | 'data' | 'sql', label: string, selected: boolean): string =>
+    `<button type="button" role="tab" class="mdr-chart-tab" id="${escape(chartId)}-tab-${name}" aria-controls="${escape(chartId)}-panel-${name}" aria-selected="${selected ? 'true' : 'false'}" tabindex="${selected ? '0' : '-1'}" data-mdr-chart-tab="${name}">${label}</button>`;
+  const panel = (name: 'chart' | 'data' | 'sql', content: string, selected: boolean): string =>
+    `<div class="mdr-chart-panel" id="${escape(chartId)}-panel-${name}" role="tabpanel" aria-labelledby="${escape(chartId)}-tab-${name}" data-mdr-chart-panel="${name}"${selected ? '' : ' hidden'}>${content}</div>`;
+  return `<div class="mdr-chart-toolbar"><div class="mdr-chart-tabs" role="tablist" aria-label="${escape(title)} 视图">${tab('chart', '图表', true)}${tab('data', '数据', false)}${tab('sql', 'SQL', false)}</div><span class="mdr-chart-engine" title="图表渲染引擎">${engine === 'g2' ? 'AntV G2' : 'ECharts'}</span></div>${panel('chart', canvas, true)}${panel('data', dataPanel, false)}${panel('sql', sqlPanel, false)}`;
+}
+
 function renderChart(source: string, datasets: ComponentDatasets, chartId: string, metrics: MetricRegistry = {}): string | undefined {
   const spec = parseJson(source);
   if (!spec) return undefined;
@@ -850,34 +1020,41 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
   const title = String(spec.title || metric?.label || '数据图表');
   const unit = typeof spec.unit === 'string' ? spec.unit : metric?.unit ?? '';
   const valueFormat = chartValueFormat(spec, metric);
-  let accessibleHead: string[] = [];
-  let accessibleRows: string[][] = [];
+  const dataset = datasets[reference.name] ?? {};
+  const dataPanel = renderChartDataPanel(dataset, rows, title);
+  const sqlPanel = renderChartSqlPanel(dataset, reference.name);
+  // G2 is the default for the kinds its grammar covers; complex charts keep ECharts.
+  const requestedEngine: ChartEngine = spec.engine === 'echarts' ? 'echarts' : 'g2';
+  const engine: ChartEngine = requestedEngine === 'g2' && (G2_CHART_KINDS as readonly string[]).includes(kind) ? 'g2' : 'echarts';
+  const anchorId = typeof spec.anchor === 'string' && /^[A-Za-z][A-Za-z0-9._-]{0,127}$/.test(spec.anchor) ? spec.anchor : chartId;
+  const section = (meta: string | undefined, content: string): string =>
+    `<section class="mdr-component mdr-chart" id="${escape(anchorId)}">${titleBar(title, '统计图', spec.kicker, meta)}${content}</section>`;
+  const emptyCanvas = '<div class="mdr-chart-tab-empty mdr-empty">没有可绘制的数据</div>';
+  const canvas = (engineName: ChartEngine, attribute: string, serialized: string): string =>
+    `<div class="mdr-chart-canvas mdr-echart" data-engine="${engineName}" data-kind="${escape(kind)}" ${attribute}="${serialized}" role="img" aria-label="${escape(title)}"></div>`;
+
+  if (engine === 'g2') {
+    const g2 = buildG2Chart(kind, { spec, rows, datasets, metrics, title, unit, valueFormat });
+    const chartCanvas = g2 ? canvas('g2', 'data-g2', escape(JSON.stringify(g2))) : emptyCanvas;
+    return section(unit ? `单位：${unit}` : undefined, renderChartFrame(chartId, 'g2', title, chartCanvas, dataPanel, sqlPanel));
+  }
+
   if (SPECIAL_CHART_KINDS.includes(kind as never)) {
     const built = buildSpecialChart(kind, { spec, rows, datasets, metrics, title, unit, valueFormat });
-    if (!built) {
-      return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unit ? `单位：${unit}` : undefined)}<div class="mdr-empty">没有可绘制的数据</div></section>`;
-    }
+    const noteText = built?.unitNote ?? unit;
+    if (!built) return section(noteText ? `单位：${noteText}` : undefined, emptyCanvas);
     if (['combo', 'waterfall'].includes(kind)) applyAnnotations(built.option, spec, []);
-    const serializedSpecial = escape(JSON.stringify(built.option));
-    const dataId = `${chartId}-data`;
-    const accessible = built.rows.length > 0 && built.rows.length <= 400
-      ? `<div class="mdr-visually-hidden" id="${escape(dataId)}"><table><caption>${escape(title)} 数据</caption><thead><tr>${built.head.map((cell) => `<th>${escape(cell)}</th>`).join('')}</tr></thead><tbody>${built.rows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
-      : '';
-    const noteText = built.unitNote ?? unit;
-    const unitMeta = noteText ? `单位：${noteText}` : undefined;
-    const describedBy = accessible ? ` aria-describedby="${escape(dataId)}"` : '';
-    const anchorId = typeof spec.anchor === 'string' && /^[A-Za-z][A-Za-z0-9._-]{0,127}$/.test(spec.anchor) ? spec.anchor : chartId;
-    return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unitMeta)}<div id="${escape(anchorId)}" class="mdr-echart" data-option="${serializedSpecial}" role="img" aria-label="${escape(title)}"${describedBy}></div>${accessible}</section>`;
+    const chartCanvas = canvas('echarts', 'data-option', escape(JSON.stringify(built.option)));
+    return section(noteText ? `单位：${noteText}` : undefined, renderChartFrame(chartId, 'echarts', title, chartCanvas, dataPanel, sqlPanel));
   }
-  let option: JsonObject;
+
+  let option: JsonObject | undefined;
   if (kind === 'pie') {
     const data = rows.flatMap((row) => {
       const value = number(row[yField]);
       return value === undefined ? [] : [{ name: String(row[xField] ?? ''), value }];
     });
-    if (!data.length) return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unit ? `单位：${unit}` : undefined)}<div class="mdr-empty">没有可绘制的数据</div></section>`;
-    accessibleHead = ['分类', '数值'];
-    accessibleRows = data.map((slice) => [slice.name, String(slice.value)]);
+    if (!data.length) return section(unit ? `单位：${unit}` : undefined, emptyCanvas);
     option = {
       mdrFormat: valueFormat,
       tooltip: { trigger: 'item' },
@@ -902,7 +1079,7 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
       const rawX = row[xField]; const xNumeric = number(rawX);
       return [{ x: String(rawX ?? ''), ...(xNumeric === undefined ? {} : { xNumeric }), y, series: String(row[String(spec.series || '')] ?? '总计') }];
     });
-    if (points.length === 0) return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图')}<div class="mdr-empty">没有可绘制的数据</div></section>`;
+    if (points.length === 0) return section(unit ? `单位：${unit}` : undefined, emptyCanvas);
     const numericScatter = kind === 'scatter' && points.every((point) => point.xNumeric !== undefined);
     const categories = [...new Set(points.map((point) => point.x))];
     const seriesNames = [...new Set(points.map((point) => point.series))];
@@ -926,16 +1103,6 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
     });
     const canZoom = kind !== 'scatter' || numericScatter;
     const banded = kind === 'bar' || kind === 'column';
-    accessibleHead = numericScatter ? [xField, yField] : ['类别', ...seriesNames];
-    accessibleRows = numericScatter
-      ? points.map((point) => [String(point.x), String(point.y)])
-      : categories.map((category) => [
-          category,
-          ...seriesNames.map((name) => {
-            const point = points.find((candidate) => candidate.x === category && candidate.series === name);
-            return point === undefined ? '—' : String(point.y);
-          }),
-        ]);
     option = {
       mdrFormat: valueFormat,
       tooltip: { trigger: 'axis', axisPointer: { type: banded ? 'shadow' : 'cross' } },
@@ -961,17 +1128,9 @@ function renderChart(source: string, datasets: ComponentDatasets, chartId: strin
     };
     applyAnnotations(option, spec, seriesNames);
   }
-  const serialized = escape(JSON.stringify(option));
-  // A canvas chart is opaque to assistive tech; a visually hidden data table keeps the numbers reachable.
-  const dataId = `${chartId}-data`;
-  const accessible = accessibleRows.length > 0 && accessibleRows.length <= 400
-    ? `<div class="mdr-visually-hidden" id="${escape(dataId)}"><table><caption>${escape(title)} 数据</caption><thead><tr>${accessibleHead.map((cell) => `<th>${escape(cell)}</th>`).join('')}</tr></thead><tbody>${accessibleRows.map((row) => `<tr>${row.map((cell) => `<td>${escape(cell)}</td>`).join('')}</tr>`).join('')}</tbody></table></div>`
-    : '';
-  const describedBy = accessible ? ` aria-describedby="${escape(dataId)}"` : '';
-  const anchorId = typeof spec.anchor === 'string' && /^[A-Za-z][A-Za-z0-9._-]{0,127}$/.test(spec.anchor) ? spec.anchor : chartId;
-  return `<section class="mdr-component mdr-chart">${titleBar(title, '统计图', spec.kicker, unit ? `单位：${unit}` : undefined)}<div id="${escape(anchorId)}" class="mdr-echart" data-option="${serialized}" role="img" aria-label="${escape(title)}"${describedBy}></div>${accessible}</section>`;
+  const chartCanvas = canvas('echarts', 'data-option', escape(JSON.stringify(option)));
+  return section(unit ? `单位：${unit}` : undefined, renderChartFrame(chartId, 'echarts', title, chartCanvas, dataPanel, sqlPanel));
 }
-
 function renderTable(source: string, datasets: ComponentDatasets, metrics: MetricRegistry = {}): string | undefined {
   const spec = parseJson(source); if (!spec) return undefined;
   const reference = dataReference(spec, datasets); if (!reference) return undefined;
@@ -1208,9 +1367,14 @@ function renderFindings(source: string, datasets: ComponentDatasets, metrics: Me
     const evidence = Array.isArray(item.evidence) ? item.evidence.filter((entry): entry is string => typeof entry === 'string') : [];
     const links = evidence.map((entry) => `<a class="mdr-finding-link" href="#${escape(entry)}">${escape(entry)}</a>`).join('');
     const value = resolved ? `<span class="mdr-finding-value">${formatMetricValue(resolved.value, resolved.metric, { withUnit: true })}</span>` : '';
-    const detail = typeof item.detail === 'string' && item.detail ? `<p class="mdr-finding-detail">${escape(item.detail)}</p>` : '';
-    const action = typeof item.action === 'string' && item.action ? `<p class="mdr-finding-action"><span>行动</span>${escape(item.action)}${typeof item.owner === 'string' && item.owner ? `<em>${escape(item.owner)}</em>` : ''}</p>` : '';
-    return `<li class="mdr-finding mdr-finding--${escape(severity)}"><div class="mdr-finding-head"><span class="mdr-finding-severity">${escape(severityLabels[severity] as string)}</span><span class="mdr-finding-title">${escape(item.title || '发现')}</span>${value}</div>${detail}${action}${links ? `<p class="mdr-finding-evidence"><span>证据</span>${links}</p>` : ''}</li>`;
+    // Prose inside a finding is still prose: resolve {{metric_id}} tokens before escaping.
+    const prose = (candidate: unknown): string => typeof candidate === 'string' && candidate ? substituteMetricTokens(candidate, metrics, datasets) : '';
+    const detailText = prose(item.detail);
+    const actionText = prose(item.action);
+    const ownerText = prose(item.owner);
+    const detail = detailText ? `<p class="mdr-finding-detail">${escape(detailText)}</p>` : '';
+    const action = actionText ? `<p class="mdr-finding-action"><span>行动</span>${escape(actionText)}${ownerText ? `<em>${escape(ownerText)}</em>` : ''}</p>` : '';
+    return `<li class="mdr-finding mdr-finding--${escape(severity)}"><div class="mdr-finding-head"><span class="mdr-finding-severity">${escape(severityLabels[severity] as string)}</span><span class="mdr-finding-title">${escape(prose(item.title) || '发现')}</span>${value}</div>${detail}${action}${links ? `<p class="mdr-finding-evidence"><span>证据</span>${links}</p>` : ''}</li>`;
   }).join('');
   return `<section class="mdr-component mdr-findings"${anchorAttribute(spec)}>${titleBar(spec.title || '关键发现', '发现', spec.kicker)}<ul class="mdr-findings-list">${cards}</ul></section>`;
 }

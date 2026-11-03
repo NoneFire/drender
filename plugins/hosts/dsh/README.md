@@ -50,7 +50,7 @@ drender_validate → drender_render
 dsh plugin --profile web add @tita-agent/dsh-drender-plugin
 ```
 
-插件包内已包含 renderer、数据源和主题模块。用户只需安装这个 DSH 插件包；ECharts、Mermaid、AntV Infographic、AntV T8、Tabulator 等第三方运行时依赖由 npm 自动安装。
+插件包内已包含 renderer、数据源和主题模块。用户只需安装这个 DSH 插件包；AntV G2、ECharts、Mermaid、AntV Infographic、AntV T8、Tabulator 等第三方运行时依赖由 npm 自动安装。
 
 ## 输入与数据来源
 
@@ -69,9 +69,9 @@ dsh plugin --profile web add @tita-agent/dsh-drender-plugin
 
 支持 report 和 dashboard 两种模式，包括：
 
-- **数据组件：** 指标 token、KPI、ECharts 图表、排行榜、透视表、Tabulator 数据表、发现摘要、指标口径和数据质量说明。
+- **数据组件：** 指标 token、KPI、默认 AntV G2 / 复杂图表回退 ECharts 的统计图（含图表、数据、SQL 三视图）、排行榜、透视表、Tabulator 数据表、发现摘要、指标口径和数据质量说明。
 - **说明组件：** SQL 代码块、Mermaid 流程图、AntV Infographic、AntV T8 叙述、Excalidraw 场景和声明式图片。
-- **版式组件：** 自动目录、提示条、折叠详情、2–6 列正文分栏和 12 列 dashboard 面板栅格；图表可放在分栏内并排显示。
+- **版式组件：** 默认收成左上角短横线的悬停目录、提示条、折叠详情、2–6 列正文分栏和 12 列 dashboard 面板栅格；图表可放在分栏内并排显示。
 
 通过 `metrics` 声明业务指标，再从 KPI、图表或正文引用，可共享格式和口径。渲染器只把报告实际使用的组件运行时、主题、数据快照和声明资源放入 HTML，文件可离线打开。
 

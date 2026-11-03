@@ -380,6 +380,9 @@ function queryDataset(database: DatabaseSyncType, source: SqliteDatasetSource, d
     columns: result.columns,
     rows: result.rows,
     source: source.source ?? `SQLite ${databasePath} · ${provenance}`,
+    // Carry the executed query so a chart can show its own evidence next to the picture.
+    sql: query,
+    sqlDialect: 'sqlite',
     ...(source.fetchedAt ? { fetchedAt: source.fetchedAt } : {}),
     ...(source.updatedAt ? { updatedAt: source.updatedAt } : {}),
   };
@@ -502,6 +505,8 @@ export function loadSqliteDataset(options: DatasetSourceMetadata & {
       ...(options.source ? { source: options.source } : {}),
       ...(options.fetchedAt ? { fetchedAt: options.fetchedAt } : {}),
       ...(options.updatedAt ? { updatedAt: options.updatedAt } : {}),
+      sql: options.sql,
+      sqlDialect: 'sqlite',
     };
   } finally {
     database.close();
